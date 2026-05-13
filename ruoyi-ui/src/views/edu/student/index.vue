@@ -71,7 +71,6 @@
       <el-table-column label="籍贯" align="center" prop="nativePlace" min-width="85" />
       <el-table-column label="手机号" align="center" prop="phone" min-width="92" />
       <el-table-column label="院系" align="center" prop="dept.deptName" min-width="95" />
-      <el-table-column label="学分" align="center" prop="credit" width="50" />
       <el-table-column label="账号状态" align="center" width="74">
         <template slot-scope="scope">
           <dict-tag :options="dict.type.sys_normal_disable" :value="getUserStatus(scope.row)"/>
@@ -143,9 +142,6 @@
               :value="item.deptId"
             ></el-option>
           </el-select>
-        </el-form-item>
-        <el-form-item label="学分" prop="credit">
-          <el-input-number v-model="form.credit" controls-position="right" :min="0" :max="200" />
         </el-form-item>
         <el-form-item label="简介" prop="introduction">
           <el-input v-model="form.introduction" type="textarea" placeholder="请输入内容" />
@@ -247,7 +243,6 @@ export default {
         phone: null,
         deptId: null,
         introduction: null,
-        credit: 0,
         remark: null
       };
       this.resetForm("form");
