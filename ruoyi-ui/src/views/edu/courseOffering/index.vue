@@ -6,7 +6,7 @@
           <el-option
             v-for="sem in semesterList"
             :key="sem.semesterValue"
-            :label="sem.semesterName"
+            :label="formatSemester(sem.semesterValue)"
             :value="sem.semesterValue"
           ></el-option>
         </el-select>

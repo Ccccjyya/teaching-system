@@ -177,10 +177,6 @@ public class EnrollmentServiceImpl implements IEnrollmentService
             throw new ServiceException("您已选择该课程，无需重复选课（开课ID=" + enrollment.getOfferingId() + "，学生ID=" + enrollment.getStudentId() + "）");
         }
 
-        // 7. 更新选课人数
-        courseOffering.setSelectedCount(courseOffering.getSelectedCount() + 1);
-        courseOfferingMapper.updateCourseOffering(courseOffering);
-
         return result;
     }
 
@@ -373,14 +369,6 @@ public class EnrollmentServiceImpl implements IEnrollmentService
 
         // 2. 删除选课记录
         int result = enrollmentMapper.deleteEnrollmentByEnrollmentId(enrollmentId);
-
-        // 3. 更新选课人数
-        CourseOffering courseOffering = courseOfferingMapper.selectCourseOfferingByOfferingId(enrollment.getOfferingId());
-        if (StringUtils.isNotNull(courseOffering) && courseOffering.getSelectedCount() > 0)
-        {
-            courseOffering.setSelectedCount(courseOffering.getSelectedCount() - 1);
-            courseOfferingMapper.updateCourseOffering(courseOffering);
-        }
 
         return result;
     }

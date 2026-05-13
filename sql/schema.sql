@@ -29,7 +29,7 @@ CREATE TABLE `edu_course` (
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`course_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='课程表';
+) ENGINE=InnoDB AUTO_INCREMENT=46 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='课程表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `edu_course_offering`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -50,7 +50,7 @@ CREATE TABLE `edu_course_offering` (
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
   `semester` varchar(20) DEFAULT NULL COMMENT '学期',
   PRIMARY KEY (`offering_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=55 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='开课表';
+) ENGINE=InnoDB AUTO_INCREMENT=55 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='开课表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `edu_department`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -67,7 +67,7 @@ CREATE TABLE `edu_department` (
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`dept_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='院系表';
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='院系表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `edu_enrollment`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -91,7 +91,7 @@ CREATE TABLE `edu_enrollment` (
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`enrollment_id`),
   UNIQUE KEY `uk_student_offering` (`student_id`,`offering_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=68 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='选课表';
+) ENGINE=InnoDB AUTO_INCREMENT=68 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='选课表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `edu_global_setting`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -108,7 +108,7 @@ CREATE TABLE `edu_global_setting` (
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_setting_key` (`setting_key`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='全局设置表';
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='全局设置表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `edu_semester`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -124,7 +124,7 @@ CREATE TABLE `edu_semester` (
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='学期表';
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='学期表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `edu_student`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -148,7 +148,7 @@ CREATE TABLE `edu_student` (
   `user_id` bigint DEFAULT NULL COMMENT '系统用户ID',
   PRIMARY KEY (`student_id`),
   UNIQUE KEY `uk_student_no` (`student_no`)
-) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='学生表';
+) ENGINE=InnoDB AUTO_INCREMENT=14 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='学生表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `edu_teacher`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -171,7 +171,7 @@ CREATE TABLE `edu_teacher` (
   `user_id` bigint DEFAULT NULL COMMENT '系统用户ID',
   PRIMARY KEY (`teacher_id`),
   UNIQUE KEY `uk_teacher_no` (`teacher_no`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='教师表';
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='教师表';
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `edu_teacher_course_apply`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -732,6 +732,233 @@ CREATE TABLE `sys_user_role` (
   PRIMARY KEY (`user_id`,`role_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户和角色关联表';
 /*!40101 SET character_set_client = @saved_cs_client */;
+
+DROP TRIGGER IF EXISTS `trg_enrollment_after_insert`;
+DROP TRIGGER IF EXISTS `trg_enrollment_after_delete`;
+DROP TRIGGER IF EXISTS `trg_enrollment_after_update`;
+DROP PROCEDURE IF EXISTS `sp_apply_commit`;
+
+DELIMITER ;;
+
+CREATE TRIGGER `trg_enrollment_after_insert`
+AFTER INSERT ON `edu_enrollment`
+FOR EACH ROW
+BEGIN
+    IF NEW.status = '0' THEN
+        UPDATE edu_course_offering
+        SET selected_count = selected_count + 1
+        WHERE offering_id = NEW.offering_id;
+    END IF;
+END;;
+
+CREATE TRIGGER `trg_enrollment_after_delete`
+AFTER DELETE ON `edu_enrollment`
+FOR EACH ROW
+BEGIN
+    IF OLD.status = '0' THEN
+        UPDATE edu_course_offering
+        SET selected_count = CASE
+            WHEN selected_count > 0 THEN selected_count - 1
+            ELSE 0
+        END
+        WHERE offering_id = OLD.offering_id;
+    END IF;
+END;;
+
+CREATE TRIGGER `trg_enrollment_after_update`
+AFTER UPDATE ON `edu_enrollment`
+FOR EACH ROW
+BEGIN
+    IF OLD.status <> '0' AND NEW.status = '0' THEN
+        UPDATE edu_course_offering
+        SET selected_count = selected_count + 1
+        WHERE offering_id = NEW.offering_id;
+    ELSEIF OLD.status = '0' AND NEW.status <> '0' THEN
+        UPDATE edu_course_offering
+        SET selected_count = CASE
+            WHEN selected_count > 0 THEN selected_count - 1
+            ELSE 0
+        END
+        WHERE offering_id = NEW.offering_id;
+    END IF;
+END;;
+
+CREATE PROCEDURE `sp_apply_commit`(
+    IN p_apply_id BIGINT,
+    IN p_course_no VARCHAR(20),
+    IN p_hours INT,
+    IN p_schedule VARCHAR(50),
+    IN p_location VARCHAR(50),
+    IN p_max_capacity INT,
+    IN p_operator VARCHAR(64),
+    OUT p_out_code INT,
+    OUT p_out_msg VARCHAR(255)
+)
+proc_main: BEGIN
+    DECLARE v_course_id BIGINT;
+    DECLARE v_course_no VARCHAR(20);
+    DECLARE v_xq VARCHAR(20);
+    DECLARE v_km VARCHAR(100);
+    DECLARE v_yxh_id BIGINT;
+    DECLARE v_xf DECIMAL(4,1);
+    DECLARE v_xs INT;
+    DECLARE v_gh VARCHAR(20);
+    DECLARE v_stats VARCHAR(20);
+    DECLARE v_teacher_id BIGINT;
+    DECLARE v_exists INT DEFAULT 0;
+    DECLARE v_dept_code VARCHAR(20);
+    DECLARE v_now DATETIME;
+    DECLARE v_capacity INT;
+    DECLARE v_operator VARCHAR(64);
+    DECLARE v_error_msg VARCHAR(255) DEFAULT '';
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        GET DIAGNOSTICS CONDITION 1 v_error_msg = MESSAGE_TEXT;
+        ROLLBACK;
+        SET p_out_code = 500;
+        SET p_out_msg = CONCAT('审核失败: ', v_error_msg);
+    END;
+
+    SET p_out_code = 0;
+    SET p_out_msg = '';
+    SET v_now = NOW();
+    SET v_operator = IFNULL(NULLIF(p_operator, ''), 'admin');
+    SET v_capacity = IFNULL(p_max_capacity, 100);
+
+    START TRANSACTION;
+
+    SELECT a.course_id, a.xq, a.km, a.yxh_id, a.xf, a.xs, a.gh, a.stats
+    INTO v_course_id, v_xq, v_km, v_yxh_id, v_xf, v_xs, v_gh, v_stats
+    FROM edu_teacher_course_apply a
+    WHERE a.id = p_apply_id
+    FOR UPDATE;
+
+    IF v_stats IS NULL THEN
+        ROLLBACK;
+        SET p_out_code = 404;
+        SET p_out_msg = '申请不存在';
+        LEAVE proc_main;
+    END IF;
+
+    IF v_stats <> 'pending' THEN
+        ROLLBACK;
+        SET p_out_code = 409;
+        SET p_out_msg = '该申请已处理，无法重复审核';
+        LEAVE proc_main;
+    END IF;
+
+    IF v_course_id IS NULL THEN
+        SELECT COUNT(1) INTO v_exists
+        FROM edu_course
+        WHERE course_name COLLATE utf8mb4_unicode_ci = v_km;
+
+        IF v_exists > 0 THEN
+            ROLLBACK;
+            SET p_out_code = 409;
+            SET p_out_msg = '课程名已存在，无法重复开课';
+            LEAVE proc_main;
+        END IF;
+
+        SELECT dept_code INTO v_dept_code
+        FROM edu_department
+        WHERE dept_id = v_yxh_id
+        LIMIT 1;
+
+        SET v_course_no = NULLIF(TRIM(IFNULL(p_course_no, '')), '');
+        IF v_course_no IS NULL THEN
+            SET v_course_no = CONCAT(IFNULL(v_dept_code, ''), UPPER(SUBSTRING(REPLACE(UUID(), '-', ''), 1, 6)));
+        END IF;
+
+        INSERT INTO edu_course(
+            course_no, course_name, credit, hours, dept_id, create_by, create_time
+        ) VALUES (
+            v_course_no,
+            v_km,
+            CAST(v_xf AS SIGNED),
+            IFNULL(p_hours, IFNULL(v_xs, CAST(v_xf AS SIGNED) * 16)),
+            v_yxh_id,
+            v_operator,
+            v_now
+        );
+        SET v_course_id = LAST_INSERT_ID();
+    ELSE
+        SELECT c.course_id, c.course_no
+        INTO v_course_id, v_course_no
+        FROM edu_course c
+        WHERE c.course_id = v_course_id
+        LIMIT 1;
+
+        IF v_course_id IS NULL THEN
+            ROLLBACK;
+            SET p_out_code = 404;
+            SET p_out_msg = '关联的课程不存在';
+            LEAVE proc_main;
+        END IF;
+    END IF;
+
+    SELECT teacher_id INTO v_teacher_id
+    FROM edu_teacher
+    WHERE teacher_no COLLATE utf8mb4_unicode_ci = v_gh
+    LIMIT 1;
+
+    IF v_teacher_id IS NULL THEN
+        ROLLBACK;
+        SET p_out_code = 404;
+        SET p_out_msg = CONCAT('教师不存在，工号: ', v_gh);
+        LEAVE proc_main;
+    END IF;
+
+    INSERT INTO edu_course_offering(
+        course_id, course_no, semester, teacher_id, schedule, location, max_capacity, selected_count, create_by, create_time
+    ) VALUES (
+        v_course_id, v_course_no, v_xq, v_teacher_id, p_schedule, p_location, v_capacity, 0, v_operator, v_now
+    );
+
+    UPDATE edu_teacher_course_apply
+    SET stats = 'approved',
+        update_by = v_operator,
+        update_time = v_now
+    WHERE id = p_apply_id;
+
+    COMMIT;
+END;;
+
+DELIMITER ;
+
+-- 兼容旧库：若历史库缺少字段，则自动补齐（幂等）
+SET @has_course_id := (
+    SELECT COUNT(1)
+    FROM information_schema.columns
+    WHERE table_schema = DATABASE()
+      AND table_name = 'edu_teacher_course_apply'
+      AND column_name = 'course_id'
+);
+SET @sql_add_course_id := IF(
+    @has_course_id = 0,
+    'ALTER TABLE `edu_teacher_course_apply` ADD COLUMN `course_id` bigint DEFAULT NULL COMMENT ''关联已有课程ID'' AFTER `km`',
+    'SELECT ''skip add course_id'' AS msg'
+);
+PREPARE stmt_add_course_id FROM @sql_add_course_id;
+EXECUTE stmt_add_course_id;
+DEALLOCATE PREPARE stmt_add_course_id;
+
+SET @has_xs := (
+    SELECT COUNT(1)
+    FROM information_schema.columns
+    WHERE table_schema = DATABASE()
+      AND table_name = 'edu_teacher_course_apply'
+      AND column_name = 'xs'
+);
+SET @sql_add_xs := IF(
+    @has_xs = 0,
+    'ALTER TABLE `edu_teacher_course_apply` ADD COLUMN `xs` int DEFAULT NULL COMMENT ''学时'' AFTER `xf`',
+    'SELECT ''skip add xs'' AS msg'
+);
+PREPARE stmt_add_xs FROM @sql_add_xs;
+EXECUTE stmt_add_xs;
+DEALLOCATE PREPARE stmt_add_xs;
+
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;

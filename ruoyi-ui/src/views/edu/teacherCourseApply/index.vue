@@ -67,6 +67,11 @@
       <el-table-column label="学分" align="center" prop="xf" />
       <el-table-column label="教师工号" align="center" prop="gh" />
       <el-table-column label="教师姓名" align="center" prop="teacherName" />
+      <el-table-column label="希望开课时间" align="center" prop="schedule" min-width="120">
+        <template slot-scope="scope">
+          <span>{{ scope.row.schedule || '-' }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="状态" align="center" prop="stats">
         <template slot-scope="scope">
           <el-tag :type="getStatusType(scope.row.stats)">{{ getStatusText(scope.row.stats) }}</el-tag>
@@ -138,6 +143,9 @@
         </el-form-item>
         <el-form-item label="教师姓名">
           <span>{{ viewForm.teacherName }}</span>
+        </el-form-item>
+        <el-form-item label="希望开课时间">
+          <span>{{ viewForm.schedule || '-' }}</span>
         </el-form-item>
         <el-form-item label="状态">
           <el-tag :type="getStatusType(viewForm.stats)">{{ getStatusText(viewForm.stats) }}</el-tag>

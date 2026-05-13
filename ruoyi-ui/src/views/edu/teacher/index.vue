@@ -177,7 +177,7 @@ export default {
     },
     async loadData() {
       try {
-        const [statsRes, coursesRes] = await Promise.all([getTeacherStats(), getTeacherCourses()])
+        const [statsRes, coursesRes] = await Promise.all([getTeacherStats(), getTeacherCourses({ onlyCurrent: true })])
         if (statsRes.code === 200) {
           this.stats = statsRes.data || this.stats
         }

@@ -249,6 +249,7 @@ public class TeacherController extends BaseController {
         apply.setTeacherName(teacher.getTeacherName());
         apply.setXq((String) requestData.get("xq"));
         apply.setRemark((String) requestData.get("remark"));
+        apply.setSchedule((String) requestData.get("schedule"));
         apply.setExpectedCapacity(requestData.get("expectedCapacity") != null
                 ? Integer.parseInt(requestData.get("expectedCapacity").toString()) : null);
 

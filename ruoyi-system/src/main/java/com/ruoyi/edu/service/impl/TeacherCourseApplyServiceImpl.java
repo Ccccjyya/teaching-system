@@ -1,43 +1,24 @@
 package com.ruoyi.edu.service.impl;
 
 import java.util.List;
-import java.util.UUID;
+import java.util.HashMap;
+import java.util.Map;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.ruoyi.edu.domain.TeacherCourseApply;
-import com.ruoyi.edu.domain.Course;
-import com.ruoyi.edu.domain.CourseOffering;
-import com.ruoyi.edu.domain.Department;
 import com.ruoyi.edu.mapper.TeacherCourseApplyMapper;
-import com.ruoyi.edu.mapper.CourseMapper;
-import com.ruoyi.edu.mapper.CourseOfferingMapper;
-import com.ruoyi.edu.mapper.DepartmentMapper;
-import com.ruoyi.edu.mapper.TeacherMapper;
 import com.ruoyi.edu.service.ITeacherCourseApplyService;
 import com.ruoyi.edu.dto.ApplyCommitDTO;
 import com.ruoyi.edu.dto.ApplyRefuseDTO;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.DateUtils;
-import com.ruoyi.common.utils.StringUtils;
 
 @Service
 public class TeacherCourseApplyServiceImpl implements ITeacherCourseApplyService {
 
     @Autowired
     private TeacherCourseApplyMapper teacherCourseApplyMapper;
-
-    @Autowired
-    private CourseMapper courseMapper;
-
-    @Autowired
-    private CourseOfferingMapper courseOfferingMapper;
-
-    @Autowired
-    private DepartmentMapper deptMapper;
-
-    @Autowired
-    private TeacherMapper teacherMapper;
 
     @Override
     public List<TeacherCourseApply> selectTeacherCourseApplyList(TeacherCourseApply apply) {
@@ -75,71 +56,24 @@ public class TeacherCourseApplyServiceImpl implements ITeacherCourseApplyService
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int applyCommit(ApplyCommitDTO dto) {
-        TeacherCourseApply apply = teacherCourseApplyMapper.selectTeacherCourseApplyById(dto.getId());
-        if (apply == null) {
-            throw new ServiceException("申请不存在");
+        Map<String, Object> params = new HashMap<>();
+        params.put("id", dto.getId());
+        params.put("courseNo", dto.getCourseNo());
+        params.put("hours", dto.getHours());
+        params.put("schedule", dto.getSchedule());
+        params.put("location", dto.getLocation());
+        params.put("maxCapacity", dto.getMaxCapacity());
+        params.put("operator", "admin");
+        params.put("outCode", 0);
+        params.put("outMsg", "");
+
+        teacherCourseApplyMapper.applyCommitByProcedure(params);
+
+        Integer outCode = (Integer) params.get("outCode");
+        String outMsg = (String) params.get("outMsg");
+        if (outCode == null || outCode.intValue() != 0) {
+            throw new ServiceException(outMsg != null ? outMsg : "审核失败");
         }
-
-        if (!"pending".equals(apply.getStats())) {
-            throw new ServiceException("该申请已处理，无法重复审核");
-        }
-
-        Long courseId = apply.getCourseId();
-        Course course;
-
-        if (courseId != null) {
-            course = courseMapper.selectCourseById(courseId);
-            if (course == null) {
-                throw new ServiceException("关联的课程不存在");
-            }
-        } else {
-            Course existCourse = courseMapper.selectCourseByKh(apply.getKm());
-            if (existCourse != null) {
-                throw new ServiceException("课程名已存在，无法重复开课");
-            }
-
-            course = new Course();
-            String deptCode = "";
-            if (apply.getYxhId() != null) {
-                var dept = deptMapper.selectDepartmentById(apply.getYxhId());
-                if (dept != null && StringUtils.isNotBlank(dept.getDeptCode())) {
-                    deptCode = dept.getDeptCode();
-                }
-            }
-            String generatedCourseNo = StringUtils.isNotBlank(dto.getCourseNo()) ? dto.getCourseNo() : deptCode + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
-            course.setCourseNo(generatedCourseNo);
-            course.setCourseName(apply.getKm());
-            course.setCredit(apply.getXf().intValue());
-            course.setHours(dto.getHours() != null ? dto.getHours() : (apply.getXs() != null ? apply.getXs() : apply.getXf().intValue() * 16));
-            course.setDeptId(apply.getYxhId());
-            course.setCreateBy("admin");
-            course.setCreateTime(DateUtils.getNowDate());
-            courseMapper.insertCourse(course);
-        }
-
-        CourseOffering offering = new CourseOffering();
-        var teacher = teacherMapper.selectTeacherByGh(apply.getGh());
-        if (teacher == null) {
-            throw new ServiceException("教师不存在，工号: " + apply.getGh());
-        }
-        offering.setCourseId(course.getCourseId());
-        offering.setCourseNo(course.getCourseNo());
-        offering.setSemester(apply.getXq());
-        offering.setTeacherId(teacher.getTeacherId());
-        offering.setSchedule(dto.getSchedule());
-        offering.setLocation(dto.getLocation());
-        offering.setMaxCapacity(dto.getMaxCapacity());
-        offering.setCreateBy("admin");
-        offering.setCreateTime(DateUtils.getNowDate());
-        courseOfferingMapper.insertCourseOffering(offering);
-
-        TeacherCourseApply updateApply = new TeacherCourseApply();
-        updateApply.setId(dto.getId());
-        updateApply.setStats("approved");
-        updateApply.setUpdateBy("admin");
-        updateApply.setUpdateTime(DateUtils.getNowDate());
-        teacherCourseApplyMapper.updateApplyStatus(updateApply);
-
         return 1;
     }
 

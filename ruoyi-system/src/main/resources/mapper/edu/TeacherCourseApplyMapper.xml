@@ -57,7 +57,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         ORDER BY a.create_time DESC
     </select>
 
-    <select id="selectTeacherCourseApplyList_COUNT" parameterType="TeacherCourseApply" resultType="Long">
+    <select id="selectTeacherCourseApplyListCount" parameterType="TeacherCourseApply" resultType="Long">
         select count(0)
         from edu_teacher_course_apply a
         left join edu_department d on a.yxh_id COLLATE utf8mb4_unicode_ci = d.dept_id COLLATE utf8mb4_unicode_ci
@@ -133,5 +133,19 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         </set>
         where id = #{id}
     </update>
+
+    <select id="applyCommitByProcedure" statementType="CALLABLE" parameterType="java.util.Map">
+        {call sp_apply_commit(
+            #{id, mode=IN, jdbcType=BIGINT},
+            #{courseNo, mode=IN, jdbcType=VARCHAR},
+            #{hours, mode=IN, jdbcType=INTEGER},
+            #{schedule, mode=IN, jdbcType=VARCHAR},
+            #{location, mode=IN, jdbcType=VARCHAR},
+            #{maxCapacity, mode=IN, jdbcType=INTEGER},
+            #{operator, mode=IN, jdbcType=VARCHAR},
+            #{outCode, mode=OUT, jdbcType=INTEGER},
+            #{outMsg, mode=OUT, jdbcType=VARCHAR}
+        )}
+    </select>
 
 </mapper>
