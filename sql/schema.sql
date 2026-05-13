@@ -180,8 +180,10 @@ CREATE TABLE `edu_teacher_course_apply` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `xq` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
   `km` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `course_id` bigint DEFAULT NULL COMMENT '关联已有课程ID',
   `yxh_id` bigint NOT NULL,
   `xf` decimal(4,1) NOT NULL,
+  `xs` int DEFAULT NULL COMMENT '学时',
   `gh` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
   `stats` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT 'pending',
   `refuse_reason` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
@@ -739,4 +741,3 @@ CREATE TABLE `sys_user_role` (
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
-
