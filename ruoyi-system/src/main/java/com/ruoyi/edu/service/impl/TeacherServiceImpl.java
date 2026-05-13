@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.core.domain.entity.SysRole;
+import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.edu.mapper.TeacherMapper;
 import com.ruoyi.edu.mapper.CourseOfferingMapper;
 import com.ruoyi.edu.domain.Teacher;
@@ -106,6 +107,12 @@ public class TeacherServiceImpl implements ITeacherService
     @Transactional
     public int insertTeacher(Teacher teacher)
     {
+        SysUser checkUser = new SysUser();
+        checkUser.setUserName(teacher.getTeacherNo());
+        if (!sysUserService.checkUserNameUnique(checkUser))
+        {
+            throw new ServiceException("新增教师失败，登录账号已存在: " + teacher.getTeacherNo());
+        }
         // 1. 创建系统用户
         SysUser sysUser = new SysUser();
         sysUser.setUserName(teacher.getTeacherNo());
