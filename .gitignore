@@ -44,6 +44,11 @@ nbdist/
 logs/
 dump.rdb
 ruoyi-admin/D:/
+uploadPath/*
+!uploadPath/.gitkeep
+!uploadPath/avatar/
+uploadPath/avatar/*
+!uploadPath/avatar/.gitkeep
 
 !*/build/*.java
 !*/build/*.html
