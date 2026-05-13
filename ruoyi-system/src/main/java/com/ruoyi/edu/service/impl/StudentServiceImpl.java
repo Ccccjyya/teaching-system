@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.core.domain.entity.SysRole;
+import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.edu.mapper.StudentMapper;
 import com.ruoyi.edu.domain.Student;
 import com.ruoyi.edu.service.IStudentService;
@@ -120,6 +121,12 @@ public class StudentServiceImpl implements IStudentService
     @Transactional
     public int insertStudent(Student student)
     {
+        SysUser checkUser = new SysUser();
+        checkUser.setUserName(student.getStudentNo());
+        if (!sysUserService.checkUserNameUnique(checkUser))
+        {
+            throw new ServiceException("新增学生失败，登录账号已存在: " + student.getStudentNo());
+        }
         // 1. 创建系统用户
         SysUser sysUser = new SysUser();
         sysUser.setUserName(student.getStudentNo());

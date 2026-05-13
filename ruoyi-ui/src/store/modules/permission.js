@@ -152,7 +152,7 @@ function buildRoleSidebarRoutes(sidebarRoutes) {
     const adminRoutes = filterOutLeafPaths(constantRoutes.concat(sidebarRoutes), nonAdminLeafPaths)
     return dedupeRoutesByFullPath(removeHomeByType(removeHomeByType(adminRoutes, 'student'), 'teacher'))
   }
-  if (auth.hasRole('student')) {
+  if (auth.hasRole('student') || store.getters.identity === 'student') {
     const studentRoutes = filterRoutesByLeafPaths(sidebarRoutes, studentOnlyLeafPaths)
     if (!hasRoutePath(studentRoutes, 'studentIndex')) {
       studentRoutes.unshift(studentHomeRoute)
@@ -178,6 +178,9 @@ function buildRoleDefaultRoutes(sidebarRoutes, visibleSidebarRoutes) {
     return dedupeRoutesByFullPath(removeHomeByType(removeHomeByType(adminRoutes, 'student'), 'teacher'))
   }
   if (isTeacherIdentity()) {
+    return visibleSidebarRoutes
+  }
+  if (store.getters.identity === 'student') {
     return visibleSidebarRoutes
   }
   return removeHomeByType(visibleSidebarRoutes, 'admin')

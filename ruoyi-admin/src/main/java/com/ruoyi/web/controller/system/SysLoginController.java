@@ -101,14 +101,22 @@ public class SysLoginController
         ajax.put("isDefaultModifyPwd", initPasswordIsModify(user.getPwdUpdateDate()));
         ajax.put("isPasswordExpired", passwordIsExpiration(user.getPwdUpdateDate()));
         
-        // 查询学生或教师信息
+        // 查询学生或教师信息（优先按 userId，缺失绑定时按用户名兜底）
         Long userId = user.getUserId();
         Student student = studentService.selectStudentByUserId(userId);
+        if (student == null)
+        {
+            student = studentService.selectStudentByStudentNo(user.getUserName());
+        }
         if (student != null) {
             ajax.put("identity", "student");
             ajax.put("student", student);
         } else {
             Teacher teacher = teacherService.selectTeacherByUserId(userId);
+            if (teacher == null)
+            {
+                teacher = teacherService.selectTeacherByGh(user.getUserName());
+            }
             if (teacher != null) {
                 ajax.put("identity", "teacher");
                 ajax.put("teacher", teacher);

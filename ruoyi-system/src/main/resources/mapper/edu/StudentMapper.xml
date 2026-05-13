@@ -28,7 +28,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectStudentVo">
-        select s.student_id, s.student_no, s.student_name, s.gender, s.birthday, s.native_place, s.phone, s.dept_id, s.introduction, s.credit, 
+        select s.student_id, s.student_no, s.student_name, s.gender, s.birthday, s.native_place, s.phone, s.dept_id, s.user_id, s.introduction, s.credit, 
                s.create_by, s.create_time, s.update_by, s.update_time, s.remark,
                d.dept_id as d_dept_id, d.dept_code as d_dept_code, d.dept_name as d_dept_name
         from edu_student s
@@ -70,6 +70,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="nativePlace != null">native_place,</if>
             <if test="phone != null">phone,</if>
             <if test="deptId != null">dept_id,</if>
+            <if test="userId != null">user_id,</if>
             <if test="introduction != null">introduction,</if>
             <if test="credit != null">credit,</if>
             <if test="createBy != null">create_by,</if>
@@ -86,6 +87,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="nativePlace != null">#{nativePlace},</if>
             <if test="phone != null">#{phone},</if>
             <if test="deptId != null">#{deptId},</if>
+            <if test="userId != null">#{userId},</if>
             <if test="introduction != null">#{introduction},</if>
             <if test="credit != null">#{credit},</if>
             <if test="createBy != null">#{createBy},</if>
@@ -106,6 +108,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="nativePlace != null">native_place = #{nativePlace},</if>
             <if test="phone != null">phone = #{phone},</if>
             <if test="deptId != null">dept_id = #{deptId},</if>
+            <if test="userId != null">user_id = #{userId},</if>
             <if test="introduction != null">introduction = #{introduction},</if>
             <if test="credit != null">credit = #{credit},</if>
             <if test="updateBy != null">update_by = #{updateBy},</if>

@@ -141,8 +141,7 @@ public class TeacherController extends BaseController {
         String defaultPassword = "admin123";
         sysUser.setPassword(passwordEncoder.encode(defaultPassword));
         sysUser.setUpdateBy(getUsername());
-
-        return toAjax(sysUserService.updateUser(sysUser));
+        return toAjax(sysUserService.resetPwd(sysUser));
     }
 
     @PreAuthorize("@ss.hasPermi('edu:teacher:edit')")
@@ -161,8 +160,7 @@ public class TeacherController extends BaseController {
 
         sysUser.setStatus(status);
         sysUser.setUpdateBy(getUsername());
-
-        return toAjax(sysUserService.updateUser(sysUser));
+        return toAjax(sysUserService.updateUserStatus(sysUser));
     }
 
     @PreAuthorize("@ss.hasPermi('edu:teacher:query')")

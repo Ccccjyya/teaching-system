@@ -694,13 +694,43 @@ INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (102,3);
 INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (103,3);
 INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (104,3);
 INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (105,101);
-INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (106,4);
 INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (106,101);
 INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (107,101);
 INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (108,3);
+INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (117,3);
 INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (118,101);
+INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES (119,101);
 /*!40000 ALTER TABLE `sys_user_role` ENABLE KEYS */;
 UNLOCK TABLES;
+
+-- 数据一致性兜底：补齐 student/teacher 的 user_id 绑定与角色关联（幂等）
+UPDATE edu_student s
+JOIN sys_user u ON LOWER(u.user_name) = LOWER(s.student_no)
+SET s.user_id = u.user_id
+WHERE s.user_id IS NULL;
+
+UPDATE edu_teacher t
+JOIN sys_user u ON LOWER(u.user_name) = LOWER(t.teacher_no)
+SET t.user_id = u.user_id
+WHERE t.user_id IS NULL;
+
+INSERT INTO sys_user_role (user_id, role_id)
+SELECT DISTINCT s.user_id, 3
+FROM edu_student s
+WHERE s.user_id IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM sys_user_role ur
+    WHERE ur.user_id = s.user_id AND ur.role_id = 3
+  );
+
+INSERT INTO sys_user_role (user_id, role_id)
+SELECT DISTINCT t.user_id, 101
+FROM edu_teacher t
+WHERE t.user_id IS NOT NULL
+  AND NOT EXISTS (
+    SELECT 1 FROM sys_user_role ur
+    WHERE ur.user_id = t.user_id AND ur.role_id = 101
+  );
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
