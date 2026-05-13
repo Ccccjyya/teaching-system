@@ -1,0 +1,319 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.edu.mapper.EnrollmentMapper">
+    
+    <resultMap type="Enrollment" id="EnrollmentResult">
+        <result property="enrollmentId"    column="enrollment_id"    />
+        <result property="offeringId"    column="offering_id"    />
+        <result property="academicYear"    column="academic_year"    />
+        <result property="semester"    column="semester"    />
+        <result property="studentId"    column="student_id"    />
+        <result property="courseNo"    column="course_no"    />
+        <result property="teacherId"    column="teacher_id"    />
+        <result property="usualScore"    column="usual_score"    />
+        <result property="examScore"    column="exam_score"    />
+        <result property="totalScore"    column="total_score"    />
+        <result property="status"    column="status"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="remark"    column="remark"    />
+        <result property="studentPhone"    column="s_phone"    />
+        <result property="studentDeptName"    column="d_dept_name"    />
+        <association property="courseOffering" javaType="CourseOffering">
+            <result property="offeringId"    column="co_offering_id"    />
+            <result property="schedule"    column="co_schedule"    />
+            <result property="location"    column="co_location"    />
+            <result property="semester"    column="co_semester"    />
+            <association property="course" javaType="Course">
+                <result property="courseId"    column="c_course_id"    />
+                <result property="courseNo"    column="c_course_no"    />
+                <result property="courseName"    column="c_course_name"    />
+                <result property="credit"    column="c_credit"    />
+            </association>
+            <association property="teacher" javaType="Teacher">
+                <result property="teacherId"    column="t_teacher_id"    />
+                <result property="teacherNo"    column="t_teacher_no"    />
+                <result property="teacherName"    column="t_teacher_name"    />
+            </association>
+        </association>
+        <association property="student" javaType="Student">
+            <result property="studentId"    column="s_student_id"    />
+            <result property="studentNo"    column="s_student_no"    />
+            <result property="studentName"    column="s_student_name"    />
+            <result property="phone"    column="s_phone"    />
+            <association property="dept" javaType="Department">
+                <result property="deptName"    column="d_dept_name"    />
+            </association>
+        </association>
+    </resultMap>
+
+    <sql id="selectEnrollmentVo">
+        select e.enrollment_id, e.offering_id, e.academic_year, e.semester, e.student_id, e.course_no, e.teacher_id,
+               e.usual_score, e.exam_score, e.total_score, e.status,
+               e.create_by, e.create_time, e.update_by, e.update_time, e.remark,
+               o.offering_id as co_offering_id, o.schedule as co_schedule, o.location as co_location, o.semester as co_semester,
+               c.course_id as c_course_id, c.course_no as c_course_no, c.course_name as c_course_name, c.credit as c_credit,
+               t.teacher_id as t_teacher_id, t.teacher_no as t_teacher_no, t.teacher_name as t_teacher_name,
+               s.student_id as s_student_id, s.student_no as s_student_no, s.student_name as s_student_name,
+               s.phone as s_phone, d.dept_name as d_dept_name
+        from edu_enrollment e
+        left join edu_course_offering o on e.offering_id = o.offering_id
+        left join edu_course c on o.course_id = c.course_id
+        left join edu_teacher t on o.teacher_id = t.teacher_id
+        left join edu_student s on e.student_id = s.student_id
+        left join edu_department d on s.dept_id = d.dept_id
+    </sql>
+
+    <select id="selectEnrollmentList" parameterType="Enrollment" resultMap="EnrollmentResult">
+        <include refid="selectEnrollmentVo"/>
+        <where>  
+            <if test="studentId != null "> and e.student_id = #{studentId}</if>
+            <if test="offeringId != null "> and e.offering_id = #{offeringId}</if>
+            <if test="courseNo != null  and courseNo != ''"> and e.course_no like concat('%', #{courseNo}, '%')</if>
+            <if test="teacherId != null "> and e.teacher_id = #{teacherId}</if>
+            <if test="status != null  and status != ''"> and e.status = #{status}</if>
+            <if test="academicYear != null  and academicYear != ''"> and e.academic_year = #{academicYear}</if>
+            <if test="semester != null  and semester != ''"> and e.semester = #{semester}</if>
+        </where>
+    </select>
+    
+    <select id="selectEnrollmentByEnrollmentId" parameterType="Long" resultMap="EnrollmentResult">
+        <include refid="selectEnrollmentVo"/>
+        where e.enrollment_id = #{enrollmentId}
+    </select>
+
+    <select id="selectEnrollmentByStudentId" parameterType="Long" resultMap="EnrollmentResult">
+        <include refid="selectEnrollmentVo"/>
+        where e.student_id = #{studentId} and e.status = '0'
+        and (
+            o.semester = (select semester_value from edu_semester where is_current = 1 limit 1)
+            or CONCAT(e.academic_year, '-', e.semester) = (select semester_value from edu_semester where is_current = 1 limit 1)
+        )
+    </select>
+
+    <select id="selectActiveEnrollmentByStudentIdAndOfferingId" resultMap="EnrollmentResult">
+        <include refid="selectEnrollmentVo"/>
+        where e.student_id = #{studentId}
+          and e.offering_id = #{offeringId}
+          and e.status = '0'
+        limit 1
+    </select>
+        
+    <insert id="insertEnrollment" parameterType="Enrollment" useGeneratedKeys="true" keyProperty="enrollmentId">
+        insert into edu_enrollment
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="offeringId != null">offering_id,</if>
+            <if test="academicYear != null and academicYear != ''">academic_year,</if>
+            <if test="semester != null and semester != ''">semester,</if>
+            <if test="studentId != null">student_id,</if>
+            <if test="courseNo != null and courseNo != ''">course_no,</if>
+            <if test="teacherId != null">teacher_id,</if>
+            <if test="usualScore != null">usual_score,</if>
+            <if test="examScore != null">exam_score,</if>
+            <if test="totalScore != null">total_score,</if>
+            <if test="status != null">status,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="remark != null">remark,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="offeringId != null">#{offeringId},</if>
+            <if test="academicYear != null and academicYear != ''">#{academicYear},</if>
+            <if test="semester != null and semester != ''">#{semester},</if>
+            <if test="studentId != null">#{studentId},</if>
+            <if test="courseNo != null and courseNo != ''">#{courseNo},</if>
+            <if test="teacherId != null">#{teacherId},</if>
+            <if test="usualScore != null">#{usualScore},</if>
+            <if test="examScore != null">#{examScore},</if>
+            <if test="totalScore != null">#{totalScore},</if>
+            <if test="status != null">#{status},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="remark != null">#{remark},</if>
+         </trim>
+    </insert>
+
+    <update id="updateEnrollment" parameterType="Enrollment">
+        update edu_enrollment
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="offeringId != null">offering_id = #{offeringId},</if>
+            <if test="academicYear != null and academicYear != ''">academic_year = #{academicYear},</if>
+            <if test="semester != null and semester != ''">semester = #{semester},</if>
+            <if test="studentId != null">student_id = #{studentId},</if>
+            <if test="courseNo != null and courseNo != ''">course_no = #{courseNo},</if>
+            <if test="teacherId != null">teacher_id = #{teacherId},</if>
+            <if test="usualScore != null">usual_score = #{usualScore},</if>
+            <if test="examScore != null">exam_score = #{examScore},</if>
+            <if test="totalScore != null">total_score = #{totalScore},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </trim>
+        where enrollment_id = #{enrollmentId}
+    </update>
+
+    <delete id="deleteEnrollmentByEnrollmentId" parameterType="Long">
+        delete from edu_enrollment where enrollment_id = #{enrollmentId}
+    </delete>
+
+    <delete id="deleteEnrollmentByEnrollmentIds" parameterType="Long">
+        delete from edu_enrollment where enrollment_id in 
+        <foreach item="enrollmentId" collection="array" open="(" separator="," close=")">
+            #{enrollmentId}
+        </foreach>
+    </delete>
+
+    <select id="countBySemester" parameterType="String" resultType="Integer">
+        select count(0) from edu_enrollment where semester = #{semester}
+    </select>
+
+    <delete id="deleteBySemester" parameterType="String">
+        delete from edu_enrollment where semester = #{semester}
+    </delete>
+
+    <resultMap type="com.ruoyi.edu.vo.StudentGradeVO" id="StudentGradeResult">
+        <result property="enrollmentId" column="enrollment_id"/>
+        <result property="courseNo" column="course_no"/>
+        <result property="courseName" column="course_name"/>
+        <result property="credit" column="credit"/>
+        <result property="teacherName" column="teacher_name"/>
+        <result property="academicYear" column="academic_year"/>
+        <result property="semester" column="semester"/>
+        <result property="semesterName" column="semester_name"/>
+        <result property="usualScore" column="usual_score"/>
+        <result property="examScore" column="exam_score"/>
+        <result property="totalScore" column="total_score"/>
+    </resultMap>
+
+    <resultMap type="com.ruoyi.edu.vo.CourseTableVO" id="CourseTableResult">
+        <result property="enrollmentId" column="enrollment_id"/>
+        <result property="courseNo" column="course_no"/>
+        <result property="courseName" column="course_name"/>
+        <result property="teacherName" column="teacher_name"/>
+        <result property="schedule" column="schedule"/>
+        <result property="location" column="location"/>
+        <result property="credit" column="credit"/>
+        <result property="academicYear" column="academic_year"/>
+        <result property="semester" column="semester"/>
+    </resultMap>
+
+    <select id="selectStudentGrades" resultMap="StudentGradeResult">
+        SELECT e.enrollment_id, c.course_no, c.course_name, c.credit, 
+               t.teacher_name, e.academic_year, e.semester,
+               CASE e.semester WHEN '1' THEN '秋季学期' WHEN '2' THEN '春季学期' END AS semester_name,
+               e.usual_score, e.exam_score, e.total_score
+        FROM edu_enrollment e
+        LEFT JOIN edu_course_offering o ON e.offering_id = o.offering_id
+        LEFT JOIN edu_course c ON o.course_id = c.course_id
+        LEFT JOIN edu_teacher t ON o.teacher_id = t.teacher_id
+        WHERE e.student_id = #{studentId}
+        <if test="academicYear != null and academicYear != ''">
+            AND e.academic_year = #{academicYear}
+        </if>
+        <if test="semester != null and semester != ''">
+            AND e.semester = #{semester}
+        </if>
+        ORDER BY e.academic_year DESC, e.semester DESC
+    </select>
+
+    <select id="selectStudentCourseTable" resultMap="CourseTableResult">
+        SELECT e.enrollment_id, c.course_no, c.course_name, c.credit,
+               t.teacher_name, o.schedule, o.location,
+               e.academic_year, e.semester
+        FROM edu_enrollment e
+        LEFT JOIN edu_course_offering o ON e.offering_id = o.offering_id
+        LEFT JOIN edu_course c ON o.course_id = c.course_id
+        LEFT JOIN edu_teacher t ON o.teacher_id = t.teacher_id
+        WHERE e.student_id = #{studentId}
+        <if test="academicYear != null and academicYear != '' and semester != null and semester != ''">
+            AND (
+                (e.academic_year = #{academicYear} AND e.semester = #{semester})
+                OR (
+                    (e.academic_year IS NULL or e.academic_year = '' or e.semester IS NULL or e.semester = '')
+                    AND o.semester = CONCAT(#{academicYear}, '-', #{semester})
+                )
+            )
+            AND (
+                CONCAT(#{academicYear}, '-', #{semester}) != (SELECT semester_value FROM edu_semester WHERE is_current = 1 LIMIT 1)
+                OR e.status = '0'
+            )
+        </if>
+        <if test="academicYear != null and academicYear != '' and (semester == null or semester == '')">
+            AND (
+                e.academic_year = #{academicYear}
+                OR (
+                    (e.academic_year IS NULL or e.academic_year = '')
+                    AND o.semester LIKE CONCAT(#{academicYear}, '-%')
+                )
+            )
+        </if>
+        <if test="(academicYear == null or academicYear == '') and semester != null and semester != ''">
+            AND (
+                e.semester = #{semester}
+                OR (
+                    (e.semester IS NULL or e.semester = '')
+                    AND o.semester LIKE CONCAT('%-', #{semester})
+                )
+            )
+        </if>
+        ORDER BY e.academic_year DESC, e.semester DESC
+    </select>
+
+    <select id="selectStudentEnrollmentSemesters" resultType="String">
+        SELECT DISTINCT COALESCE(o.semester, CONCAT(e.academic_year, '-', e.semester)) AS semester_value
+        FROM edu_enrollment e
+        LEFT JOIN edu_course_offering o ON e.offering_id = o.offering_id
+        WHERE e.student_id = #{studentId}
+          AND COALESCE(o.semester, CONCAT(e.academic_year, '-', e.semester)) IS NOT NULL
+          AND COALESCE(o.semester, CONCAT(e.academic_year, '-', e.semester)) != ''
+        ORDER BY semester_value DESC
+    </select>
+
+    <select id="selectCurrentSemesterEnrollments" resultMap="EnrollmentResult">
+        SELECT e.*, o.*, c.*
+        FROM edu_enrollment e
+        LEFT JOIN edu_course_offering o ON e.offering_id = o.offering_id
+        LEFT JOIN edu_course c ON o.course_id = c.course_id
+        WHERE e.student_id = #{studentId}
+          AND e.status = '0'
+          AND (
+              o.semester = (SELECT semester_value FROM edu_semester WHERE is_current = 1 LIMIT 1)
+              OR CONCAT(e.academic_year, '-', e.semester) = (SELECT semester_value FROM edu_semester WHERE is_current = 1 LIMIT 1)
+          )
+    </select>
+
+    <select id="sumCompletedCredits" resultType="int">
+        SELECT COALESCE(SUM(c.credit), 0)
+        FROM edu_enrollment e
+        LEFT JOIN edu_course_offering o ON e.offering_id = o.offering_id
+        LEFT JOIN edu_course c ON o.course_id = c.course_id
+        WHERE e.student_id = #{studentId}
+          AND e.total_score IS NOT NULL
+          AND e.total_score >= 60
+    </select>
+
+    <select id="selectCourseStudents" resultMap="EnrollmentResult">
+        <include refid="selectEnrollmentVo"/>
+        WHERE e.offering_id = #{offeringId}
+          AND e.status = '0'
+    </select>
+
+    <select id="selectCourseStudentsByKeyword" resultMap="EnrollmentResult">
+        <include refid="selectEnrollmentVo"/>
+        WHERE e.offering_id = #{offeringId}
+          AND e.status = '0'
+          AND (
+              s.student_no LIKE CONCAT('%', #{keyword}, '%')
+              OR s.student_name LIKE CONCAT('%', #{keyword}, '%')
+          )
+    </select>
+</mapper>

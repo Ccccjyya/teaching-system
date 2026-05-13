@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.edu.mapper.CourseOfferingMapper">
+    
+    <resultMap type="CourseOffering" id="CourseOfferingResult">
+        <result property="offeringId"    column="offering_id"    />
+        <result property="courseId"    column="course_id"    />
+        <result property="courseNo"    column="course_no"    />
+        <result property="semester"    column="semester"    />
+        <result property="teacherId"    column="teacher_id"    />
+        <result property="schedule"    column="schedule"    />
+        <result property="location"    column="location"    />
+        <result property="maxCapacity"    column="max_capacity"    />
+        <result property="selectedCount"    column="selected_count"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="remark"    column="remark"    />
+        <association property="course" javaType="Course">
+            <result property="courseId"    column="c_course_id"    />
+            <result property="courseNo"    column="c_course_no"    />
+            <result property="courseName"    column="c_course_name"    />
+            <result property="credit"    column="c_credit"    />
+            <result property="hours"    column="c_hours"    />
+        </association>
+        <association property="teacher" javaType="Teacher">
+            <result property="teacherId"    column="t_teacher_id"    />
+            <result property="teacherNo"    column="t_teacher_no"    />
+            <result property="teacherName"    column="t_teacher_name"    />
+        </association>
+    </resultMap>
+
+    <sql id="selectCourseOfferingVo">
+        select o.offering_id, o.course_id, o.course_no, o.semester, o.teacher_id, o.schedule, o.location, o.max_capacity, 
+               COALESCE(e.selected_count, 0) as selected_count,
+               o.create_by, o.create_time, o.update_by, o.update_time, o.remark,
+               c.course_id as c_course_id, c.course_no as c_course_no, c.course_name as c_course_name, c.credit as c_credit, c.hours as c_hours,
+               t.teacher_id as t_teacher_id, t.teacher_no as t_teacher_no, t.teacher_name as t_teacher_name
+        from edu_course_offering o
+        left join edu_course c on o.course_id = c.course_id
+        left join edu_teacher t on o.teacher_id = t.teacher_id
+        left join (
+            select offering_id, count(*) as selected_count 
+            from edu_enrollment 
+            where status = '0'
+            group by offering_id
+        ) e on o.offering_id = e.offering_id
+    </sql>
+
+    <select id="selectCourseOfferingList" parameterType="CourseOffering" resultMap="CourseOfferingResult">
+        <include refid="selectCourseOfferingVo"/>
+        <where>  
+            <if test="params.currentSemester != null and params.currentSemester != ''">
+                and o.semester = #{params.currentSemester}
+            </if>
+            <if test="params.currentSemester == null or params.currentSemester == ''">
+                <if test="params.adminList != null and params.adminList">
+                </if>
+                <if test="params.adminList == null or !params.adminList">
+                    and o.semester = (select semester_value from edu_semester where is_current = 1 limit 1)
+                </if>
+            </if>
+            <if test="semester != null and semester != ''"> and o.semester = #{semester}</if>
+            <if test="courseId != null "> and o.course_id = #{courseId}</if>
+            <if test="courseNo != null  and courseNo != ''"> and o.course_no like concat('%', #{courseNo}, '%')</if>
+            <if test="courseName != null  and courseName != ''"> and c.course_name like concat('%', #{courseName}, '%')</if>
+            <if test="teacherId != null "> and o.teacher_id = #{teacherId}</if>
+            <if test="schedule != null  and schedule != ''"> and o.schedule = #{schedule}</if>
+            <if test="weekday != null and weekday != ''"> and o.schedule like concat('%', #{weekday}, '%')</if>
+            <if test="timePeriod != null and timePeriod != ''">
+                <choose>
+                    <when test="timePeriod == '1-2节'">
+                        and (o.schedule like '%1-2节%' or o.schedule like '%8:00-9:40%')
+                    </when>
+                    <when test="timePeriod == '3-4节'">
+                        and (o.schedule like '%3-4节%' or o.schedule like '%10:00-11:40%')
+                    </when>
+                    <when test="timePeriod == '5-6节'">
+                        and (o.schedule like '%5-6节%' or o.schedule like '%14:00-15:40%')
+                    </when>
+                    <when test="timePeriod == '7-8节'">
+                        and (o.schedule like '%7-8节%' or o.schedule like '%16:00-17:40%')
+                    </when>
+                    <when test="timePeriod == '9-10节'">
+                        and (o.schedule like '%9-10节%' or o.schedule like '%19:00-20:40%')
+                    </when>
+                    <otherwise>
+                        and o.schedule like concat('%', #{timePeriod}, '%')
+                    </otherwise>
+                </choose>
+            </if>
+            <if test="fullStatus != null and fullStatus != ''">
+                <choose>
+                    <when test="fullStatus == '1'">
+                        and COALESCE(e.selected_count, 0) &gt;= o.max_capacity
+                    </when>
+                    <otherwise>
+                        and COALESCE(e.selected_count, 0) &lt; o.max_capacity
+                    </otherwise>
+                </choose>
+            </if>
+        </where>
+    </select>
+    
+    <select id="selectCourseOfferingByOfferingId" parameterType="Long" resultMap="CourseOfferingResult">
+        <include refid="selectCourseOfferingVo"/>
+        where o.offering_id = #{offeringId}
+    </select>
+        
+    <insert id="insertCourseOffering" parameterType="CourseOffering" useGeneratedKeys="true" keyProperty="offeringId">
+        insert into edu_course_offering
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="courseId != null">course_id,</if>
+            course_no,
+            <if test="semester != null and semester != ''">semester,</if>
+            <if test="teacherId != null">teacher_id,</if>
+            <if test="schedule != null">schedule,</if>
+            <if test="location != null">location,</if>
+            <if test="maxCapacity != null">max_capacity,</if>
+            <if test="selectedCount != null">selected_count,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="remark != null">remark,</if>
+        </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="courseId != null">#{courseId},</if>
+            #{courseNo},
+            <if test="semester != null and semester != ''">#{semester},</if>
+            <if test="teacherId != null">#{teacherId},</if>
+            <if test="schedule != null">#{schedule},</if>
+            <if test="location != null">#{location},</if>
+            <if test="maxCapacity != null">#{maxCapacity},</if>
+            <if test="selectedCount != null">#{selectedCount},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="remark != null">#{remark},</if>
+        </trim>
+    </insert>
+
+    <update id="updateCourseOffering" parameterType="CourseOffering">
+        update edu_course_offering
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="courseId != null">course_id = #{courseId},</if>
+            <if test="courseNo != null and courseNo != ''">course_no = #{courseNo},</if>
+            <if test="semester != null and semester != ''">semester = #{semester},</if>
+            <if test="teacherId != null">teacher_id = #{teacherId},</if>
+            <if test="schedule != null">schedule = #{schedule},</if>
+            <if test="location != null">location = #{location},</if>
+            <if test="maxCapacity != null">max_capacity = #{maxCapacity},</if>
+            <if test="selectedCount != null">selected_count = #{selectedCount},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </trim>
+        where offering_id = #{offeringId}
+    </update>
+
+    <delete id="deleteCourseOfferingByOfferingId" parameterType="Long">
+        delete from edu_course_offering where offering_id = #{offeringId}
+    </delete>
+
+    <delete id="deleteCourseOfferingByOfferingIds" parameterType="Long">
+        delete from edu_course_offering where offering_id in 
+        <foreach item="offeringId" collection="array" open="(" separator="," close=")">
+            #{offeringId}
+        </foreach>
+    </delete>
+
+    <select id="countBySemester" parameterType="String" resultType="Integer">
+        select count(0) from edu_course_offering o
+        where o.semester = #{semester}
+    </select>
+
+    <delete id="deleteBySemester" parameterType="String">
+        delete from edu_course_offering
+        where semester = #{semester}
+    </delete>
+
+    <select id="countTeacherCourses" resultType="Integer">
+        SELECT COUNT(DISTINCT o.offering_id)
+        FROM edu_course_offering o
+        WHERE o.teacher_id = #{teacherId}
+        <if test="semester != null and semester != ''">
+            AND o.semester = #{semester}
+        </if>
+        <if test="semester == null or semester == ''">
+            AND o.semester = (SELECT semester_value FROM edu_semester WHERE is_current = 1 LIMIT 1)
+        </if>
+    </select>
+
+    <select id="countTeacherStudents" resultType="Integer">
+        SELECT COUNT(DISTINCT e.student_id)
+        FROM edu_course_offering o
+        LEFT JOIN edu_enrollment e ON o.offering_id = e.offering_id AND e.status = '0'
+        WHERE o.teacher_id = #{teacherId}
+        <if test="semester != null and semester != ''">
+            AND o.semester = #{semester}
+        </if>
+        <if test="semester == null or semester == ''">
+            AND o.semester = (SELECT semester_value FROM edu_semester WHERE is_current = 1 LIMIT 1)
+        </if>
+    </select>
+
+    <select id="countPendingScoreCourses" resultType="Integer">
+        SELECT COUNT(DISTINCT o.offering_id)
+        FROM edu_course_offering o
+        LEFT JOIN edu_enrollment e ON o.offering_id = e.offering_id AND e.status = '0'
+        WHERE o.teacher_id = #{teacherId}
+        AND e.total_score IS NULL
+        <if test="semester != null and semester != ''">
+            AND o.semester = #{semester}
+        </if>
+        <if test="semester == null or semester == ''">
+            AND o.semester = (SELECT semester_value FROM edu_semester WHERE is_current = 1 LIMIT 1)
+        </if>
+    </select>
+
+    <select id="selectTeacherCourses" resultType="com.ruoyi.edu.vo.TeacherCourseVO">
+        SELECT o.offering_id, o.semester, c.course_no, c.course_name, c.credit, c.hours,
+               o.schedule, o.location, o.max_capacity,
+               COALESCE(e.selected_count, 0) as selected_count
+        FROM edu_course_offering o
+        LEFT JOIN edu_course c ON o.course_id = c.course_id
+        LEFT JOIN (
+            SELECT offering_id, COUNT(*) as selected_count
+            FROM edu_enrollment
+            WHERE status = '0'
+            GROUP BY offering_id
+        ) e ON o.offering_id = e.offering_id
+        WHERE o.teacher_id = #{teacherId}
+        <if test="semester != null and semester != ''">
+            AND o.semester = #{semester}
+        </if>
+        <if test="excludeSemester != null and excludeSemester != ''">
+            AND (o.semester is null or o.semester != #{excludeSemester})
+        </if>
+        <if test="courseNo != null and courseNo != ''">
+            AND c.course_no LIKE CONCAT('%', #{courseNo}, '%')
+        </if>
+        <if test="courseName != null and courseName != ''">
+            AND c.course_name LIKE CONCAT('%', #{courseName}, '%')
+        </if>
+        ORDER BY o.semester DESC, o.schedule
+    </select>
+
+    <select id="countPendingScoreStudents" resultType="Integer">
+        SELECT COUNT(*)
+        FROM edu_enrollment e
+        WHERE e.offering_id = #{offeringId}
+        AND e.status = '0'
+        AND e.total_score IS NULL
+    </select>
+
+    <select id="selectCourseOfferingListByCourseId" resultType="CourseOffering">
+        SELECT o.*
+        FROM edu_course_offering o
+        WHERE o.course_id = #{courseId}
+        ORDER BY o.create_time DESC
+    </select>
+</mapper>

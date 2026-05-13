@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.edu.mapper.CourseMapper">
+
+    <resultMap type="Course" id="CourseResult">
+        <id     property="courseId"   column="course_id"   />
+        <result property="courseNo"   column="course_no"   />
+        <result property="courseName" column="course_name" />
+        <result property="credit"     column="credit"      />
+        <result property="hours"      column="hours"       />
+        <result property="deptId"     column="dept_id"     />
+        <result property="deptName"   column="dept_name"   />
+        <result property="createBy"   column="create_by"   />
+        <result property="createTime" column="create_time" />
+        <result property="updateBy"   column="update_by"   />
+        <result property="updateTime" column="update_time" />
+        <result property="remark"     column="remark"      />
+    </resultMap>
+
+    <sql id="selectCourseVo">
+        select c.course_id, c.course_no, c.course_name, c.credit, c.hours, c.dept_id, d.dept_name,
+               c.create_by, c.create_time, c.update_by, c.update_time, c.remark
+        from edu_course c
+        left join edu_department d on c.dept_id = d.dept_id
+    </sql>
+
+    <select id="selectCourseList" parameterType="Course" resultMap="CourseResult">
+        <include refid="selectCourseVo"/>
+        <where>
+            <if test="courseNo != null and courseNo != ''">
+                AND c.course_no LIKE CONCAT('%', #{courseNo}, '%')
+            </if>
+            <if test="courseName != null and courseName != ''">
+                AND c.course_name LIKE CONCAT('%', #{courseName}, '%')
+            </if>
+            <if test="deptId != null">
+                AND c.dept_id = #{deptId}
+            </if>
+        </where>
+        ORDER BY c.create_time DESC
+    </select>
+
+    <select id="selectCourseById" parameterType="Long" resultMap="CourseResult">
+        <include refid="selectCourseVo"/>
+        WHERE c.course_id = #{courseId}
+    </select>
+
+    <select id="selectCourseByKh" parameterType="String" resultMap="CourseResult">
+        <include refid="selectCourseVo"/>
+        WHERE c.course_no = #{courseNo}
+    </select>
+
+    <insert id="insertCourse" parameterType="Course" useGeneratedKeys="true" keyProperty="courseId">
+        insert into edu_course (course_no, course_name, credit, hours, dept_id, create_by, create_time, remark)
+        values (#{courseNo}, #{courseName}, #{credit}, #{hours}, #{deptId}, #{createBy}, #{createTime}, #{remark})
+    </insert>
+
+    <update id="updateCourse" parameterType="Course">
+        update edu_course
+        <set>
+            <if test="courseNo != null and courseNo != ''">course_no = #{courseNo},</if>
+            <if test="courseName != null and courseName != ''">course_name = #{courseName},</if>
+            <if test="credit != null">credit = #{credit},</if>
+            <if test="hours != null">hours = #{hours},</if>
+            <if test="deptId != null">dept_id = #{deptId},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark}</if>
+        </set>
+        where course_id = #{courseId}
+    </update>
+
+    <delete id="deleteCourseById" parameterType="Long">
+        delete from edu_course where course_id = #{courseId}
+    </delete>
+
+    <delete id="deleteCourseByIds" parameterType="Long">
+        delete from edu_course where course_id in
+        <foreach item="courseId" collection="array" open="(" separator="," close=")">
+            #{courseId}
+        </foreach>
+    </delete>
+
+    <select id="countAll" resultType="int">
+        select count(0) from edu_course
+    </select>
+</mapper>

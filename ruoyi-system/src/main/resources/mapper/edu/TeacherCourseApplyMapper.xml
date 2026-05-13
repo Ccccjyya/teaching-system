@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.edu.mapper.TeacherCourseApplyMapper">
+
+    <resultMap type="TeacherCourseApply" id="TeacherCourseApplyResult">
+        <id     property="id"            column="id"            />
+        <result property="xq"            column="xq"            />
+        <result property="km"            column="km"            />
+        <result property="courseId"      column="course_id"     />
+        <result property="yxhId"         column="yxh_id"        />
+        <result property="xf"            column="xf"            />
+        <result property="xs"            column="xs"            />
+        <result property="gh"            column="gh"            />
+        <result property="stats"         column="stats"         />
+        <result property="refuseReason"  column="refuse_reason" />
+        <result property="yxm"           column="yxm"           />
+        <result property="teacherName"   column="teacher_name"  />
+        <result property="schedule"      column="schedule"      />
+        <result property="expectedCapacity" column="expected_capacity" />
+        <result property="createBy"      column="create_by"     />
+        <result property="createTime"    column="create_time"   />
+        <result property="updateBy"      column="update_by"     />
+        <result property="updateTime"    column="update_time"   />
+        <result property="remark"        column="remark"        />
+    </resultMap>
+
+    <sql id="selectTeacherCourseApplyVo">
+        select a.id, a.xq, a.km, a.course_id, a.yxh_id, a.xf, a.xs, a.gh, a.stats, a.refuse_reason, a.schedule, a.expected_capacity,
+               d.dept_name as yxm, t.teacher_name,
+               a.create_by, a.create_time, a.update_by, a.update_time, a.remark
+        from edu_teacher_course_apply a
+        left join edu_department d on a.yxh_id COLLATE utf8mb4_unicode_ci = d.dept_id COLLATE utf8mb4_unicode_ci
+        left join edu_teacher t on a.gh COLLATE utf8mb4_unicode_ci = t.teacher_no COLLATE utf8mb4_unicode_ci
+    </sql>
+
+    <select id="selectTeacherCourseApplyList" parameterType="TeacherCourseApply" resultMap="TeacherCourseApplyResult">
+        <include refid="selectTeacherCourseApplyVo"/>
+        <where>
+            <if test="xq != null and xq != ''">
+                AND a.xq = #{xq}
+            </if>
+            <if test="km != null and km != ''">
+                AND a.km LIKE CONCAT('%', #{km}, '%')
+            </if>
+            <if test="yxhId != null">
+                AND a.yxh_id = #{yxhId}
+            </if>
+            <if test="stats != null and stats != ''">
+                AND a.stats = #{stats}
+            </if>
+            <if test="gh != null and gh != ''">
+                AND a.gh = #{gh}
+            </if>
+        </where>
+        ORDER BY a.create_time DESC
+    </select>
+
+    <select id="selectTeacherCourseApplyList_COUNT" parameterType="TeacherCourseApply" resultType="Long">
+        select count(0)
+        from edu_teacher_course_apply a
+        left join edu_department d on a.yxh_id COLLATE utf8mb4_unicode_ci = d.dept_id COLLATE utf8mb4_unicode_ci
+        left join edu_teacher t on a.gh COLLATE utf8mb4_unicode_ci = t.teacher_no COLLATE utf8mb4_unicode_ci
+        <where>
+            <if test="xq != null and xq != ''">
+                AND a.xq = #{xq}
+            </if>
+            <if test="km != null and km != ''">
+                AND a.km LIKE CONCAT('%', #{km}, '%')
+            </if>
+            <if test="yxhId != null">
+                AND a.yxh_id = #{yxhId}
+            </if>
+            <if test="stats != null and stats != ''">
+                AND a.stats = #{stats}
+            </if>
+            <if test="gh != null and gh != ''">
+                AND a.gh = #{gh}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectTeacherCourseApplyById" parameterType="Long" resultMap="TeacherCourseApplyResult">
+        <include refid="selectTeacherCourseApplyVo"/>
+        WHERE a.id = #{id}
+    </select>
+
+    <insert id="insertTeacherCourseApply" parameterType="TeacherCourseApply" useGeneratedKeys="true" keyProperty="id">
+        insert into edu_teacher_course_apply (xq, km, course_id, yxh_id, xf, xs, gh, stats, schedule, expected_capacity, create_by, create_time, remark)
+        values (#{xq}, #{km}, #{courseId}, #{yxhId}, #{xf}, #{xs}, #{gh}, #{stats}, #{schedule}, #{expectedCapacity}, #{createBy}, #{createTime}, #{remark})
+    </insert>
+
+    <update id="updateTeacherCourseApply" parameterType="TeacherCourseApply">
+        update edu_teacher_course_apply
+        <set>
+            <if test="xq != null and xq != ''">xq = #{xq},</if>
+            <if test="km != null and km != ''">km = #{km},</if>
+            <if test="courseId != null">course_id = #{courseId},</if>
+            <if test="yxhId != null">yxh_id = #{yxhId},</if>
+            <if test="xf != null">xf = #{xf},</if>
+            <if test="xs != null">xs = #{xs},</if>
+            <if test="gh != null and gh != ''">gh = #{gh},</if>
+            <if test="stats != null and stats != ''">stats = #{stats},</if>
+            <if test="refuseReason != null">refuse_reason = #{refuseReason},</if>
+            <if test="schedule != null">schedule = #{schedule},</if>
+            <if test="expectedCapacity != null">expected_capacity = #{expectedCapacity},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark}</if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteTeacherCourseApplyById" parameterType="Long">
+        delete from edu_teacher_course_apply where id = #{id}
+    </delete>
+
+    <delete id="deleteTeacherCourseApplyByIds" parameterType="Long">
+        delete from edu_teacher_course_apply where id in
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+    <update id="updateApplyStatus" parameterType="TeacherCourseApply">
+        update edu_teacher_course_apply
+        <set>
+            <if test="stats != null and stats != ''">stats = #{stats},</if>
+            <if test="refuseReason != null">refuse_reason = #{refuseReason},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+        </set>
+        where id = #{id}
+    </update>
+
+</mapper>

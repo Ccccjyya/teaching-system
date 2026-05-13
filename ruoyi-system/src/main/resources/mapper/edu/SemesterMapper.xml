@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.edu.mapper.SemesterMapper">
+    
+    <resultMap type="Semester" id="SemesterResult">
+        <result property="id"    column="id"    />
+        <result property="semesterValue"    column="semester_value"    />
+        <result property="semesterDesc"    column="semester_desc"    />
+        <result property="isCurrent"    column="is_current"    />
+        <result property="createBy"    column="create_by"    />
+        <result property="createTime"    column="create_time"    />
+        <result property="updateBy"    column="update_by"    />
+        <result property="updateTime"    column="update_time"    />
+        <result property="remark"    column="remark"    />
+    </resultMap>
+
+    <sql id="selectSemesterVo">
+        select id, semester_value, semester_desc, is_current, create_by, create_time, update_by, update_time, remark 
+        from edu_semester
+    </sql>
+
+    <select id="selectSemesterList" parameterType="Semester" resultMap="SemesterResult">
+        <include refid="selectSemesterVo"/>
+        <where>  
+            <if test="semesterValue != null  and semesterValue != ''"> and semester_value like concat('%', #{semesterValue}, '%')</if>
+            <if test="semesterDesc != null  and semesterDesc != ''"> and semester_desc like concat('%', #{semesterDesc}, '%')</if>
+            <if test="isCurrent != null"> and is_current = #{isCurrent}</if>
+        </where>
+        order by is_current desc, create_time desc
+    </select>
+    
+    <select id="selectSemesterById" parameterType="Long" resultMap="SemesterResult">
+        <include refid="selectSemesterVo"/>
+        where id = #{id}
+    </select>
+
+    <select id="selectCurrentSemester" resultMap="SemesterResult">
+        <include refid="selectSemesterVo"/>
+        where is_current = 1
+        limit 1
+    </select>
+        
+    <insert id="insertSemester" parameterType="Semester" useGeneratedKeys="true" keyProperty="id">
+        insert into edu_semester
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <if test="semesterValue != null and semesterValue != ''">semester_value,</if>
+            <if test="semesterDesc != null and semesterDesc != ''">semester_desc,</if>
+            <if test="isCurrent != null">is_current,</if>
+            <if test="createBy != null">create_by,</if>
+            <if test="createTime != null">create_time,</if>
+            <if test="updateBy != null">update_by,</if>
+            <if test="updateTime != null">update_time,</if>
+            <if test="remark != null">remark,</if>
+         </trim>
+        <trim prefix="values (" suffix=")" suffixOverrides=",">
+            <if test="semesterValue != null and semesterValue != ''">#{semesterValue},</if>
+            <if test="semesterDesc != null and semesterDesc != ''">#{semesterDesc},</if>
+            <if test="isCurrent != null">#{isCurrent},</if>
+            <if test="createBy != null">#{createBy},</if>
+            <if test="createTime != null">#{createTime},</if>
+            <if test="updateBy != null">#{updateBy},</if>
+            <if test="updateTime != null">#{updateTime},</if>
+            <if test="remark != null">#{remark},</if>
+         </trim>
+    </insert>
+
+    <update id="updateSemester" parameterType="Semester">
+        update edu_semester
+        <trim prefix="SET" suffixOverrides=",">
+            <if test="semesterValue != null and semesterValue != ''">semester_value = #{semesterValue},</if>
+            <if test="semesterDesc != null and semesterDesc != ''">semester_desc = #{semesterDesc},</if>
+            <if test="isCurrent != null">is_current = #{isCurrent},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            <if test="updateTime != null">update_time = #{updateTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <update id="updateAllToNotCurrent">
+        update edu_semester set is_current = 0
+    </update>
+
+    <update id="updateCurrentSemester" parameterType="Long">
+        update edu_semester set is_current = 1 where id = #{id}
+    </update>
+
+    <delete id="deleteSemesterById" parameterType="Long">
+        delete from edu_semester where id = #{id}
+    </delete>
+
+    <delete id="deleteSemesterByIds" parameterType="Long">
+        delete from edu_semester where id in 
+        <foreach item="id" collection="array" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+</mapper>
