@@ -99,6 +99,22 @@ mysql -uroot -p < sql/seed.sql
 - `sql/seed.sql`
 - `ruoyi-admin/src/main/resources/application-druid.yml`
 
+## 触发器与存储过程说明
+
+为满足课程设计中“至少一个触发器和一个存储过程在系统中使用和调用”的要求，`sql/schema.sql` 已内置以下数据库对象：
+
+1. 触发器（`edu_enrollment` 选课表）
+   - `trg_enrollment_after_insert`
+   - `trg_enrollment_after_delete`
+   - `trg_enrollment_after_update`
+   - 作用：当选课记录新增/删除/状态变更时，自动维护 `edu_course_offering.selected_count`（开课已选人数），避免前后端重复计算导致数据不一致。
+
+2. 存储过程
+   - `sp_apply_commit`
+   - 作用：用于开课申请审核通过时的一体化落库逻辑（课程匹配/创建、开课信息写入、申请状态更新等），保证流程原子性，减少跨多条 SQL 的中间状态问题。
+
+说明：只要按 README 的初始化顺序执行 `schema.sql` 和 `seed.sql`，上述触发器和存储过程会自动创建，无需手动再建。
+
 ## 后端启动
 
 1. 修改数据库连接配置：
