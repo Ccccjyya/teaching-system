@@ -200,6 +200,10 @@ public class EnrollmentServiceImpl implements IEnrollmentService
 
         // 解析新课程时间
         List<TimeSlot> newTimeSlots = parseSchedule(newSchedule);
+        if (newTimeSlots.isEmpty())
+        {
+            throw new ServiceException("选课失败：课程时间格式无法识别，请联系管理员检查开课时间");
+        }
 
         // 检查每一门已选课程是否有时间冲突
         for (Enrollment enrollment : enrollmentList)
@@ -218,6 +222,10 @@ public class EnrollmentServiceImpl implements IEnrollmentService
 
             // 解析已选课程时间
             List<TimeSlot> existingTimeSlots = parseSchedule(existingSchedule);
+            if (existingTimeSlots.isEmpty())
+            {
+                throw new ServiceException("选课失败：已选课程时间格式无法识别，请联系管理员检查开课时间");
+            }
 
             // 检查时间冲突
             for (TimeSlot newSlot : newTimeSlots)
@@ -236,34 +244,128 @@ public class EnrollmentServiceImpl implements IEnrollmentService
     }
 
     /**
-     * 解析上课时间字符串
-     * 时间格式示例：周一1-2节,周三5-6节
+     * 解析上课时间字符串，兼容旧格式“周一5-6节”和新格式“周一 14:00-15:40”
      */
     private List<TimeSlot> parseSchedule(String schedule)
     {
         List<TimeSlot> timeSlots = new java.util.ArrayList<>();
-        String[] parts = schedule.split(",");
+        String[] parts = schedule.split("[,，;；]");
         
-        // 正则表达式匹配：周一1-2节
-        Pattern pattern = Pattern.compile("(周[一二三四五六日])(\\d+)-(\\d+)节");
+        Pattern sectionPattern = Pattern.compile("(周[一二三四五六日])\\s*(\\d+)\\s*-\\s*(\\d+)\\s*节");
+        Pattern timePattern = Pattern.compile("(周[一二三四五六日])\\s*([0-2]?\\d:[0-5]\\d)\\s*-\\s*([0-2]?\\d:[0-5]\\d)");
         
         for (String part : parts)
         {
-            Matcher matcher = pattern.matcher(part.trim());
-            if (matcher.matches())
+            String item = part.trim();
+            Matcher sectionMatcher = sectionPattern.matcher(item);
+            if (sectionMatcher.matches())
             {
-                String day = matcher.group(1);
-                int startSection = Integer.parseInt(matcher.group(2));
-                int endSection = Integer.parseInt(matcher.group(3));
+                int startSection = Integer.parseInt(sectionMatcher.group(2));
+                int endSection = Integer.parseInt(sectionMatcher.group(3));
                 
                 TimeSlot slot = new TimeSlot();
-                slot.setDay(convertDayToNumber(day));
+                slot.setDay(convertDayToNumber(sectionMatcher.group(1)));
                 slot.setStartSection(startSection);
                 slot.setEndSection(endSection);
+                int[] minuteRange = convertSectionToMinutes(startSection, endSection);
+                slot.setStartMinute(minuteRange[0]);
+                slot.setEndMinute(minuteRange[1]);
                 timeSlots.add(slot);
+                continue;
+            }
+
+            Matcher timeMatcher = timePattern.matcher(item);
+            if (timeMatcher.matches())
+            {
+                int startMinute = convertTimeToMinutes(timeMatcher.group(2));
+                int endMinute = convertTimeToMinutes(timeMatcher.group(3));
+                if (startMinute >= 0 && endMinute >= startMinute)
+                {
+                    TimeSlot slot = new TimeSlot();
+                    slot.setDay(convertDayToNumber(timeMatcher.group(1)));
+                    slot.setStartMinute(startMinute);
+                    slot.setEndMinute(endMinute);
+                    int[] sectionRange = convertMinutesToSection(startMinute, endMinute);
+                    slot.setStartSection(sectionRange[0]);
+                    slot.setEndSection(sectionRange[1]);
+                    timeSlots.add(slot);
+                }
             }
         }
         return timeSlots;
+    }
+
+    private int convertTimeToMinutes(String time)
+    {
+        if (StringUtils.isEmpty(time))
+        {
+            return -1;
+        }
+        String[] parts = time.split(":");
+        if (parts.length != 2)
+        {
+            return -1;
+        }
+        return Integer.parseInt(parts[0]) * 60 + Integer.parseInt(parts[1]);
+    }
+
+    private int[] convertSectionToMinutes(int startSection, int endSection)
+    {
+        return new int[] { getSectionStartMinute(startSection), getSectionEndMinute(endSection) };
+    }
+
+    private int[] convertMinutesToSection(int startMinute, int endMinute)
+    {
+        int startSection = 0;
+        int endSection = 0;
+        for (int section = 1; section <= 10; section++)
+        {
+            if (startSection == 0 && getSectionStartMinute(section) == startMinute)
+            {
+                startSection = section;
+            }
+            if (getSectionEndMinute(section) == endMinute)
+            {
+                endSection = section;
+            }
+        }
+        return new int[] { startSection, endSection };
+    }
+
+    private int getSectionStartMinute(int section)
+    {
+        switch (section)
+        {
+            case 1: return 8 * 60;
+            case 2: return 8 * 60 + 55;
+            case 3: return 10 * 60;
+            case 4: return 10 * 60 + 55;
+            case 5: return 14 * 60;
+            case 6: return 14 * 60 + 55;
+            case 7: return 16 * 60;
+            case 8: return 16 * 60 + 55;
+            case 9: return 19 * 60;
+            case 10: return 19 * 60 + 55;
+            default: return -1;
+        }
+    }
+
+    private int getSectionEndMinute(int section)
+    {
+        switch (section)
+        {
+            case 1: return 8 * 60 + 45;
+            case 2: return 9 * 60 + 40;
+            case 3: return 10 * 60 + 45;
+            case 4: return 11 * 60 + 40;
+            case 5: return 14 * 60 + 45;
+            case 6: return 15 * 60 + 40;
+            case 7: return 16 * 60 + 45;
+            case 8: return 17 * 60 + 40;
+            case 9: return 19 * 60 + 45;
+            case 10: return 20 * 60 + 40;
+            default: return -1;
+        }
     }
 
     /**
@@ -295,9 +397,15 @@ public class EnrollmentServiceImpl implements IEnrollmentService
             return false;
         }
         
-        // 检查节次是否重叠
-        return !(slot1.getEndSection() < slot2.getStartSection() || 
-                 slot2.getEndSection() < slot1.getStartSection());
+        if (slot1.getStartMinute() >= 0 && slot1.getEndMinute() >= 0
+                && slot2.getStartMinute() >= 0 && slot2.getEndMinute() >= 0)
+        {
+            return !(slot1.getEndMinute() <= slot2.getStartMinute()
+                    || slot2.getEndMinute() <= slot1.getStartMinute());
+        }
+
+        return !(slot1.getEndSection() < slot2.getStartSection()
+                || slot2.getEndSection() < slot1.getStartSection());
     }
 
     /**
@@ -381,6 +489,8 @@ public class EnrollmentServiceImpl implements IEnrollmentService
         private int day;
         private int startSection;
         private int endSection;
+        private int startMinute = -1;
+        private int endMinute = -1;
 
         public int getDay() { return day; }
         public void setDay(int day) { this.day = day; }
@@ -388,6 +498,10 @@ public class EnrollmentServiceImpl implements IEnrollmentService
         public void setStartSection(int startSection) { this.startSection = startSection; }
         public int getEndSection() { return endSection; }
         public void setEndSection(int endSection) { this.endSection = endSection; }
+        public int getStartMinute() { return startMinute; }
+        public void setStartMinute(int startMinute) { this.startMinute = startMinute; }
+        public int getEndMinute() { return endMinute; }
+        public void setEndMinute(int endMinute) { this.endMinute = endMinute; }
     }
 
     @Override

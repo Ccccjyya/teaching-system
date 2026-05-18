@@ -373,13 +373,14 @@ export default {
       })
     },
     handleCommit(row) {
+      const expectedSchedule = this.parseSchedule(row.schedule)
       this.commitForm = {
         id: row.id,
         courseNo: row.courseNo || '',
         existingCourse: !!row.courseId,
         hours: row.xs === null || row.xs === undefined ? '' : row.xs,
-        weekDay: '',
-        period: '',
+        weekDay: expectedSchedule.weekDay,
+        period: expectedSchedule.period,
         location: '',
         maxCapacity: row.expectedCapacity || null
       }
@@ -410,7 +411,7 @@ export default {
             id: this.commitForm.id,
             courseNo: this.commitForm.existingCourse ? undefined : this.commitForm.courseNo,
             hours: this.commitForm.existingCourse ? undefined : this.commitForm.hours,
-            schedule: this.commitForm.weekDay + this.commitForm.period,
+            schedule: this.formatCourseSchedule(this.commitForm.weekDay, this.commitForm.period),
             location: this.commitForm.location,
             maxCapacity: this.commitForm.maxCapacity
           }
@@ -460,6 +461,43 @@ export default {
         return parts[0] + '-' + parts[1] + '学年' + term
       }
       return value
+    },
+    parseSchedule(schedule) {
+      const result = {
+        weekDay: '',
+        period: ''
+      }
+      if (!schedule) {
+        return result
+      }
+      const weekDays = ['周一', '周二', '周三', '周四', '周五']
+      const matchedWeekDay = weekDays.find(day => schedule.indexOf(day) === 0)
+      if (!matchedWeekDay) {
+        return result
+      }
+      result.weekDay = matchedWeekDay
+      result.period = this.parsePeriod(schedule.substring(matchedWeekDay.length).trim())
+      return result
+    },
+    parsePeriod(period) {
+      const periodMap = {
+        '8:00-9:40': '1-2节',
+        '10:00-11:40': '3-4节',
+        '14:00-15:40': '5-6节',
+        '16:00-17:40': '7-8节',
+        '19:00-20:40': '9-10节'
+      }
+      return periodMap[period] || period
+    },
+    formatCourseSchedule(weekDay, period) {
+      const timeMap = {
+        '1-2节': '8:00-9:40',
+        '3-4节': '10:00-11:40',
+        '5-6节': '14:00-15:40',
+        '7-8节': '16:00-17:40',
+        '9-10节': '19:00-20:40'
+      }
+      return weekDay + ' ' + (timeMap[period] || period)
     }
   }
 }
