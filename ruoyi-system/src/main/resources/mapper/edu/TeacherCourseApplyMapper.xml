@@ -9,6 +9,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <result property="xq"            column="xq"            />
         <result property="km"            column="km"            />
         <result property="courseId"      column="course_id"     />
+        <result property="courseNo"      column="course_no"     />
         <result property="yxhId"         column="yxh_id"        />
         <result property="xf"            column="xf"            />
         <result property="xs"            column="xs"            />
@@ -27,10 +28,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectTeacherCourseApplyVo">
-        select a.id, a.xq, a.km, a.course_id, a.yxh_id, a.xf, a.xs, a.gh, a.stats, a.refuse_reason, a.schedule, a.expected_capacity,
+        select a.id, a.xq, a.km, a.course_id, c.course_no, a.yxh_id, a.xf, a.xs, a.gh, a.stats, a.refuse_reason, a.schedule, a.expected_capacity,
                d.dept_name as yxm, t.teacher_name,
                a.create_by, a.create_time, a.update_by, a.update_time, a.remark
         from edu_teacher_course_apply a
+        left join edu_course c on a.course_id = c.course_id
         left join edu_department d on a.yxh_id COLLATE utf8mb4_unicode_ci = d.dept_id COLLATE utf8mb4_unicode_ci
         left join edu_teacher t on a.gh COLLATE utf8mb4_unicode_ci = t.teacher_no COLLATE utf8mb4_unicode_ci
     </sql>

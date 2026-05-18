@@ -1,7 +1,7 @@
 <template>
   <div class="app-container">
     <el-form :model="queryParams" ref="queryForm" size="small" :inline="true" class="mb8">
-      <el-form-item label="学期">
+      <el-form-item label="学年学期">
         <el-select v-model="queryParams.xq" placeholder="请选择学期" clearable>
           <el-option 
             v-for="sem in getSemesterOptions()" 
@@ -57,9 +57,9 @@
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="55" align="center" />
-      <el-table-column label="学期" align="center" prop="xq">
+      <el-table-column label="学年学期" align="center" prop="xq" min-width="150">
         <template slot-scope="scope">
-          <span>{{ scope.row.xq === '1' ? '秋季学期' : '春季学期' }}</span>
+          <span>{{ formatSemester(scope.row.xq) }}</span>
         </template>
       </el-table-column>
       <el-table-column label="课程名" align="center" prop="km" />
@@ -126,8 +126,8 @@
 
     <el-dialog title="申请详情" :visible.sync="viewOpen" width="500px" append-to-body>
       <el-form ref="viewForm" :model="viewForm" label-width="80px" disabled>
-        <el-form-item label="学期">
-          <span>{{ viewForm.xq === '1' ? '秋季学期' : '春季学期' }}</span>
+        <el-form-item label="学年学期">
+          <span>{{ formatSemester(viewForm.xq) }}</span>
         </el-form-item>
         <el-form-item label="课程名">
           <span>{{ viewForm.km }}</span>
@@ -168,10 +168,19 @@
     <el-dialog title="审核通过" :visible.sync="commitOpen" width="450px" append-to-body>
       <el-form ref="commitForm" :model="commitForm" :rules="commitRules" label-width="80px">
         <el-form-item label="课程号" prop="courseNo">
-          <el-input v-model="commitForm.courseNo" placeholder="自动生成，可自定义" />
+          <el-input
+            v-model="commitForm.courseNo"
+            :disabled="commitForm.existingCourse"
+            :placeholder="commitForm.existingCourse ? '已有课程号，不可更改' : '新建课程可填写，不填则自动生成'"
+          />
         </el-form-item>
         <el-form-item label="学时" prop="hours">
-          <el-input v-model.number="commitForm.hours" type="number" placeholder="默认按学分计算" />
+          <el-input
+            v-model.number="commitForm.hours"
+            type="number"
+            :disabled="commitForm.existingCourse"
+            :placeholder="commitForm.existingCourse ? '已有课程学时，不可更改' : '默认使用教师填写的学时，可修改'"
+          />
         </el-form-item>
         <el-form-item label="星期" prop="weekDay">
           <el-select v-model="commitForm.weekDay" placeholder="请选择星期">
@@ -223,6 +232,19 @@ import { listApply, getApply, delApply, applyCommit, applyRefuse } from '@/api/e
 import { listDepartment } from '@/api/edu/department'
 import { listSemester } from '@/api/edu/global'
 
+const validateNonNegativeNumber = (rule, value, callback) => {
+  if (value === '' || value === null || value === undefined) {
+    callback()
+    return
+  }
+  const numberValue = Number(value)
+  if (Number.isNaN(numberValue) || numberValue < 0) {
+    callback(new Error('学时必须大于等于0'))
+    return
+  }
+  callback()
+}
+
 export default {
   name: 'TeacherCourseApply',
   data() {
@@ -246,6 +268,7 @@ export default {
       commitForm: {
         id: '',
         courseNo: '',
+        existingCourse: false,
         hours: '',
         weekDay: '',
         period: '',
@@ -263,7 +286,7 @@ export default {
           { max: 20, message: '课程号长度不能超过20个字符', trigger: 'blur' }
         ],
         hours: [
-          { min: 0, message: '学时必须大于等于0', trigger: 'blur' }
+          { validator: validateNonNegativeNumber, trigger: 'blur' }
         ],
         weekDay: [
           { required: true, message: '请选择星期', trigger: 'change' }
@@ -352,8 +375,9 @@ export default {
     handleCommit(row) {
       this.commitForm = {
         id: row.id,
-        courseNo: '',
-        hours: '',
+        courseNo: row.courseNo || '',
+        existingCourse: !!row.courseId,
+        hours: row.xs === null || row.xs === undefined ? '' : row.xs,
         weekDay: '',
         period: '',
         location: '',
@@ -384,8 +408,8 @@ export default {
         if (valid) {
           const params = {
             id: this.commitForm.id,
-            courseNo: this.commitForm.courseNo,
-            hours: this.commitForm.hours,
+            courseNo: this.commitForm.existingCourse ? undefined : this.commitForm.courseNo,
+            hours: this.commitForm.existingCourse ? undefined : this.commitForm.hours,
             schedule: this.commitForm.weekDay + this.commitForm.period,
             location: this.commitForm.location,
             maxCapacity: this.commitForm.maxCapacity
@@ -417,14 +441,25 @@ export default {
       }).catch(() => {})
     },
     getSemesterOptions() {
-      return this.semesterList.map(s => {
-        const parts = s.semesterValue.split('-')
-        const sem = parts[2]
-        return {
-          label: sem === '1' ? '秋季学期' : sem === '2' ? '春季学期' : sem,
-          value: sem
-        }
-      })
+      return this.semesterList.map(s => ({
+        label: s.semesterDesc || this.formatSemester(s.semesterValue),
+        value: s.semesterValue
+      }))
+    },
+    formatSemester(value) {
+      if (!value) {
+        return '-'
+      }
+      const semester = this.semesterList.find(s => s.semesterValue === value)
+      if (semester && semester.semesterDesc) {
+        return semester.semesterDesc
+      }
+      const parts = String(value).split('-')
+      if (parts.length >= 3) {
+        const term = parts[2] === '1' ? '秋季学期' : parts[2] === '2' ? '春季学期' : parts[2]
+        return parts[0] + '-' + parts[1] + '学年' + term
+      }
+      return value
     }
   }
 }

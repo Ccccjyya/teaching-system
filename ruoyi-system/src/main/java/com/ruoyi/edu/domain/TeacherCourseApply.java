@@ -19,7 +19,7 @@ public class TeacherCourseApply extends BaseEntity {
 
     @Excel(name = "学期")
     @NotBlank(message = "学期不能为空")
-    @Size(min = 0, max = 10, message = "学期长度不能超过10个字符")
+    @Size(min = 0, max = 20, message = "学期长度不能超过20个字符")
     private String xq;
 
     @Excel(name = "课程名称")
@@ -28,6 +28,9 @@ public class TeacherCourseApply extends BaseEntity {
     private String km;
 
     private Long courseId;
+
+    @Excel(name = "课程号")
+    private String courseNo;
 
     @Min(value = 0, message = "院系ID必须大于等于0")
     @Excel(name = "院系ID", cellType = ColumnType.NUMERIC)
@@ -95,6 +98,14 @@ public class TeacherCourseApply extends BaseEntity {
 
     public void setCourseId(Long courseId) {
         this.courseId = courseId;
+    }
+
+    public String getCourseNo() {
+        return courseNo;
+    }
+
+    public void setCourseNo(String courseNo) {
+        this.courseNo = courseNo;
     }
 
     public Long getYxhId() {
@@ -183,6 +194,7 @@ public class TeacherCourseApply extends BaseEntity {
                 .append("id", getId())
                 .append("xq", getXq())
                 .append("km", getKm())
+                .append("courseNo", getCourseNo())
                 .append("yxhId", getYxhId())
                 .append("xf", getXf())
                 .append("gh", getGh())

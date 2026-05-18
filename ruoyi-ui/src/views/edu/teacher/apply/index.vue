@@ -129,9 +129,6 @@
           <el-form-item label="课程名称" prop="km">
             <el-input v-model="form.km" placeholder="请输入课程名称" />
           </el-form-item>
-          <el-form-item label="课程号（可选）" prop="kh">
-            <el-input v-model="form.kh" placeholder="请输入课程号，不填则自动生成" />
-          </el-form-item>
           <el-form-item label="学分" prop="xf">
             <el-input v-model.number="form.xf" type="number" placeholder="请输入学分" />
           </el-form-item>
@@ -263,7 +260,6 @@ export default {
         courseType: 'existing',
         courseId: '',
         km: '',
-        kh: '',
         xf: '',
         xs: '',
         yxhId: '',
@@ -341,7 +337,6 @@ export default {
     handleCourseTypeChange() {
       this.form.courseId = ''
       this.form.km = ''
-      this.form.kh = ''
       this.form.xf = ''
       this.form.xs = ''
       this.form.yxhId = ''
@@ -367,7 +362,6 @@ export default {
         courseType: 'existing',
         courseId: '',
         km: '',
-        kh: '',
         xf: '',
         xs: '',
         yxhId: '',
@@ -389,19 +383,11 @@ export default {
     },
     submitForm() {
       const form = this.$refs['form']
-      if (this.form.courseType === 'existing') {
-        form.validateField(['xq', 'courseId'], (errors) => {
-          if (!errors) {
-            this.doSubmit()
-          }
-        })
-      } else {
-        form.validateField(['xq', 'km', 'xf', 'xs', 'yxhId'], (errors) => {
-          if (!errors) {
-            this.doSubmit()
-          }
-        })
-      }
+      form.validate(valid => {
+        if (valid) {
+          this.doSubmit()
+        }
+      })
     },
     doSubmit() {
       const schedule = this.form.weekDay && this.form.period ? this.form.weekDay + this.form.period : ''
@@ -410,7 +396,6 @@ export default {
         courseType: this.form.courseType,
         courseId: this.form.courseType === 'existing' ? this.form.courseId : null,
         km: this.form.km,
-        kh: this.form.kh,
         xf: this.form.xf,
         xs: this.form.xs,
         yxhId: this.form.yxhId,
@@ -431,7 +416,6 @@ export default {
         courseType: 'existing',
         courseId: '',
         km: '',
-        kh: '',
         xf: '',
         xs: '',
         yxhId: '',

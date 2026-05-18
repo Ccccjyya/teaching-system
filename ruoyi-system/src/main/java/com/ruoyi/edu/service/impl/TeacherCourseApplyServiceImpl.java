@@ -13,6 +13,7 @@ import com.ruoyi.edu.dto.ApplyCommitDTO;
 import com.ruoyi.edu.dto.ApplyRefuseDTO;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.DateUtils;
+import com.ruoyi.common.utils.StringUtils;
 
 @Service
 public class TeacherCourseApplyServiceImpl implements ITeacherCourseApplyService {
@@ -56,6 +57,20 @@ public class TeacherCourseApplyServiceImpl implements ITeacherCourseApplyService
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int applyCommit(ApplyCommitDTO dto) {
+        TeacherCourseApply apply = teacherCourseApplyMapper.selectTeacherCourseApplyById(dto.getId());
+        if (apply == null) {
+            throw new ServiceException("申请不存在");
+        }
+        if (!"pending".equals(apply.getStats())) {
+            throw new ServiceException("该申请已处理，无法重复审核");
+        }
+        if (apply.getCourseId() != null) {
+            dto.setCourseNo(apply.getCourseNo());
+            dto.setHours(null);
+        } else if (StringUtils.isNotBlank(dto.getCourseNo())) {
+            dto.setCourseNo(dto.getCourseNo().trim());
+        }
+
         Map<String, Object> params = new HashMap<>();
         params.put("id", dto.getId());
         params.put("courseNo", dto.getCourseNo());

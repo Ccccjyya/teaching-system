@@ -6,6 +6,7 @@ import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.domain.entity.SysUser;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.common.utils.StringUtils;
 import com.ruoyi.common.utils.poi.ExcelUtil;
 import com.ruoyi.edu.domain.Course;
 import com.ruoyi.edu.domain.Department;
@@ -242,10 +243,15 @@ public class TeacherController extends BaseController {
         }
 
         String courseType = (String) requestData.get("courseType");
+        String xq = (String) requestData.get("xq");
+        if (StringUtils.isBlank(xq)) {
+            return error("请选择学年学期");
+        }
+
         TeacherCourseApply apply = new TeacherCourseApply();
         apply.setGh(teacher.getTeacherNo());
         apply.setTeacherName(teacher.getTeacherName());
-        apply.setXq((String) requestData.get("xq"));
+        apply.setXq(xq);
         apply.setRemark((String) requestData.get("remark"));
         apply.setSchedule((String) requestData.get("schedule"));
         apply.setExpectedCapacity(requestData.get("expectedCapacity") != null
