@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.ruoyi.edu.domain.Course;
 import com.ruoyi.edu.mapper.CourseMapper;
+import com.ruoyi.edu.mapper.CourseOfferingMapper;
 import com.ruoyi.edu.service.ICourseService;
 import com.ruoyi.common.exception.ServiceException;
 import com.ruoyi.common.utils.DateUtils;
@@ -14,6 +15,9 @@ public class CourseServiceImpl implements ICourseService {
 
     @Autowired
     private CourseMapper courseMapper;
+
+    @Autowired
+    private CourseOfferingMapper courseOfferingMapper;
 
     @Override
     public List<Course> selectCourseList(Course course) {
@@ -47,11 +51,21 @@ public class CourseServiceImpl implements ICourseService {
 
     @Override
     public int deleteCourseById(Long courseId) {
+        checkCourseOfferingReference(courseId);
         return courseMapper.deleteCourseById(courseId);
     }
 
     @Override
     public int deleteCourseByIds(Long[] courseIds) {
+        for (Long courseId : courseIds) {
+            checkCourseOfferingReference(courseId);
+        }
         return courseMapper.deleteCourseByIds(courseIds);
+    }
+
+    private void checkCourseOfferingReference(Long courseId) {
+        if (courseOfferingMapper.countByCourseId(courseId) > 0) {
+            throw new ServiceException("该课程已有开课记录，不能删除");
+        }
     }
 }

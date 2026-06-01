@@ -115,6 +115,24 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where o.offering_id = #{offeringId}
         for update
     </select>
+
+    <select id="selectTeacherOfferingsForConflict" resultMap="CourseOfferingResult">
+        <include refid="selectCourseOfferingVo"/>
+        where o.semester = #{semester}
+          and o.teacher_id = #{teacherId}
+        <if test="excludeOfferingId != null">
+          and o.offering_id != #{excludeOfferingId}
+        </if>
+    </select>
+
+    <select id="selectLocationOfferingsForConflict" resultMap="CourseOfferingResult">
+        <include refid="selectCourseOfferingVo"/>
+        where o.semester = #{semester}
+          and o.location = #{location}
+        <if test="excludeOfferingId != null">
+          and o.offering_id != #{excludeOfferingId}
+        </if>
+    </select>
         
     <insert id="insertCourseOffering" parameterType="CourseOffering" useGeneratedKeys="true" keyProperty="offeringId">
         insert into edu_course_offering
@@ -185,6 +203,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         delete from edu_course_offering
         where semester = #{semester}
     </delete>
+
+    <select id="countByCourseId" resultType="int">
+        select count(0)
+        from edu_course_offering
+        where course_id = #{courseId}
+    </select>
 
     <select id="countTeacherCourses" resultType="Integer">
         SELECT COUNT(DISTINCT o.offering_id)

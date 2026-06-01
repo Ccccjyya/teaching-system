@@ -38,7 +38,7 @@ CREATE TABLE `edu_course_offering` (
   `offering_id` bigint NOT NULL AUTO_INCREMENT COMMENT '开课ID',
   `course_id` bigint NOT NULL COMMENT '课程ID',
   `teacher_id` bigint NOT NULL COMMENT '教师ID',
-  `schedule` varchar(50) NOT NULL COMMENT '上课时间（格式：周一1-2节,周三3-4节）',
+  `schedule` varchar(50) NOT NULL COMMENT '上课时间（格式：周一 8:00-9:40,周三 10:00-11:40）',
   `location` varchar(50) DEFAULT NULL COMMENT '上课地点',
   `max_capacity` int DEFAULT '100' COMMENT '最大容量',
   `selected_count` int DEFAULT '0' COMMENT '已选人数',
@@ -187,7 +187,7 @@ CREATE TABLE `edu_teacher_course_apply` (
   `update_by` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
   `update_time` datetime DEFAULT NULL,
   `remark` varchar(500) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
-  `schedule` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '期望上课时间',
+  `schedule` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '期望上课时间（格式：周一 8:00-9:40）',
   `expected_capacity` int DEFAULT NULL COMMENT '教师希望容量',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -805,6 +805,8 @@ proc_main: BEGIN
     DECLARE v_now DATETIME;
     DECLARE v_capacity INT;
     DECLARE v_operator VARCHAR(64);
+    DECLARE v_schedule_norm VARCHAR(50);
+    DECLARE v_schedule_save VARCHAR(50);
     DECLARE v_error_msg VARCHAR(255) DEFAULT '';
 
     DECLARE EXIT HANDLER FOR SQLEXCEPTION
@@ -820,6 +822,13 @@ proc_main: BEGIN
     SET v_now = NOW();
     SET v_operator = IFNULL(NULLIF(p_operator, ''), 'admin');
     SET v_capacity = IFNULL(p_max_capacity, 100);
+    SET v_schedule_norm = REPLACE(TRIM(IFNULL(p_schedule, '')), ' ', '');
+    SET v_schedule_save = TRIM(IFNULL(p_schedule, ''));
+    SET v_schedule_save = REPLACE(v_schedule_save, '1-2节', '8:00-9:40');
+    SET v_schedule_save = REPLACE(v_schedule_save, '3-4节', '10:00-11:40');
+    SET v_schedule_save = REPLACE(v_schedule_save, '5-6节', '14:00-15:40');
+    SET v_schedule_save = REPLACE(v_schedule_save, '7-8节', '16:00-17:40');
+    SET v_schedule_save = REPLACE(v_schedule_save, '9-10节', '19:00-20:40');
 
     START TRANSACTION;
 
@@ -904,10 +913,60 @@ proc_main: BEGIN
         LEAVE proc_main;
     END IF;
 
+    SELECT COUNT(1) INTO v_exists
+    FROM edu_course_offering o
+    WHERE o.semester COLLATE utf8mb4_unicode_ci = v_xq
+      AND o.teacher_id = v_teacher_id
+      AND (
+          REPLACE(TRIM(o.schedule), ' ', '') COLLATE utf8mb4_unicode_ci = v_schedule_norm
+          OR (v_schedule_norm LIKE '%8:00-9:40%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%1-2节%')
+          OR (v_schedule_norm LIKE '%1-2节%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%8:00-9:40%')
+          OR (v_schedule_norm LIKE '%10:00-11:40%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%3-4节%')
+          OR (v_schedule_norm LIKE '%3-4节%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%10:00-11:40%')
+          OR (v_schedule_norm LIKE '%14:00-15:40%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%5-6节%')
+          OR (v_schedule_norm LIKE '%5-6节%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%14:00-15:40%')
+          OR (v_schedule_norm LIKE '%16:00-17:40%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%7-8节%')
+          OR (v_schedule_norm LIKE '%7-8节%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%16:00-17:40%')
+          OR (v_schedule_norm LIKE '%19:00-20:40%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%9-10节%')
+          OR (v_schedule_norm LIKE '%9-10节%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%19:00-20:40%')
+      );
+
+    IF v_exists > 0 THEN
+        ROLLBACK;
+        SET p_out_code = 409;
+        SET p_out_msg = '该教师在当前学期的该时间段已有开课，不能重复开课';
+        LEAVE proc_main;
+    END IF;
+
+    SELECT COUNT(1) INTO v_exists
+    FROM edu_course_offering o
+    WHERE o.semester COLLATE utf8mb4_unicode_ci = v_xq
+      AND o.location COLLATE utf8mb4_unicode_ci = p_location
+      AND (
+          REPLACE(TRIM(o.schedule), ' ', '') COLLATE utf8mb4_unicode_ci = v_schedule_norm
+          OR (v_schedule_norm LIKE '%8:00-9:40%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%1-2节%')
+          OR (v_schedule_norm LIKE '%1-2节%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%8:00-9:40%')
+          OR (v_schedule_norm LIKE '%10:00-11:40%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%3-4节%')
+          OR (v_schedule_norm LIKE '%3-4节%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%10:00-11:40%')
+          OR (v_schedule_norm LIKE '%14:00-15:40%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%5-6节%')
+          OR (v_schedule_norm LIKE '%5-6节%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%14:00-15:40%')
+          OR (v_schedule_norm LIKE '%16:00-17:40%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%7-8节%')
+          OR (v_schedule_norm LIKE '%7-8节%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%16:00-17:40%')
+          OR (v_schedule_norm LIKE '%19:00-20:40%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%9-10节%')
+          OR (v_schedule_norm LIKE '%9-10节%' AND REPLACE(TRIM(o.schedule), ' ', '') LIKE '%19:00-20:40%')
+      );
+
+    IF v_exists > 0 THEN
+        ROLLBACK;
+        SET p_out_code = 409;
+        SET p_out_msg = '该上课地点在当前学期该时间段已被占用，不能重复开课';
+        LEAVE proc_main;
+    END IF;
+
     INSERT INTO edu_course_offering(
         course_id, semester, teacher_id, schedule, location, max_capacity, selected_count, create_by, create_time
     ) VALUES (
-        v_course_id, v_xq, v_teacher_id, p_schedule, p_location, v_capacity, 0, v_operator, v_now
+        v_course_id, v_xq, v_teacher_id, v_schedule_save, p_location, v_capacity, 0, v_operator, v_now
     );
 
     UPDATE edu_teacher_course_apply
@@ -970,6 +1029,47 @@ SET @sql_drop_offering_course_no := IF(
 PREPARE stmt_drop_offering_course_no FROM @sql_drop_offering_course_no;
 EXECUTE stmt_drop_offering_course_no;
 DEALLOCATE PREPARE stmt_drop_offering_course_no;
+
+-- 兼容旧库：统一开课时间存储格式为“周一 8:00-9:40”（幂等）
+UPDATE `edu_course_offering`
+SET `schedule` = REPLACE(`schedule`, '1-2节', '8:00-9:40')
+WHERE `schedule` LIKE '%1-2节%';
+
+UPDATE `edu_course_offering`
+SET `schedule` = REPLACE(`schedule`, '3-4节', '10:00-11:40')
+WHERE `schedule` LIKE '%3-4节%';
+
+UPDATE `edu_course_offering`
+SET `schedule` = REPLACE(`schedule`, '5-6节', '14:00-15:40')
+WHERE `schedule` LIKE '%5-6节%';
+
+UPDATE `edu_course_offering`
+SET `schedule` = REPLACE(`schedule`, '7-8节', '16:00-17:40')
+WHERE `schedule` LIKE '%7-8节%';
+
+UPDATE `edu_course_offering`
+SET `schedule` = REPLACE(`schedule`, '9-10节', '19:00-20:40')
+WHERE `schedule` LIKE '%9-10节%';
+
+UPDATE `edu_teacher_course_apply`
+SET `schedule` = REPLACE(`schedule`, '1-2节', '8:00-9:40')
+WHERE `schedule` LIKE '%1-2节%';
+
+UPDATE `edu_teacher_course_apply`
+SET `schedule` = REPLACE(`schedule`, '3-4节', '10:00-11:40')
+WHERE `schedule` LIKE '%3-4节%';
+
+UPDATE `edu_teacher_course_apply`
+SET `schedule` = REPLACE(`schedule`, '5-6节', '14:00-15:40')
+WHERE `schedule` LIKE '%5-6节%';
+
+UPDATE `edu_teacher_course_apply`
+SET `schedule` = REPLACE(`schedule`, '7-8节', '16:00-17:40')
+WHERE `schedule` LIKE '%7-8节%';
+
+UPDATE `edu_teacher_course_apply`
+SET `schedule` = REPLACE(`schedule`, '9-10节', '19:00-20:40')
+WHERE `schedule` LIKE '%9-10节%';
 
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 

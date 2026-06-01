@@ -157,6 +157,18 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         delete e from edu_enrollment e left join edu_course_offering o on e.offering_id = o.offering_id where o.semester = #{semester}
     </delete>
 
+    <select id="countActiveByOfferingId" resultType="int">
+        select count(0)
+        from edu_enrollment
+        where offering_id = #{offeringId}
+          and status = '0'
+    </select>
+
+    <delete id="deleteByOfferingId" parameterType="Long">
+        delete from edu_enrollment
+        where offering_id = #{offeringId}
+    </delete>
+
     <resultMap type="com.ruoyi.edu.vo.StudentGradeVO" id="StudentGradeResult">
         <result property="enrollmentId" column="enrollment_id"/>
         <result property="courseNo" column="course_no"/>

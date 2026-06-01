@@ -92,7 +92,7 @@
     <el-dialog :title="title" :visible.sync="open" width="600px" append-to-body>
       <el-form :model="form" ref="form" :rules="rules" label-width="100px">
         <el-form-item label="学期" prop="xq">
-          <el-select v-model="form.xq" placeholder="请选择学期">
+          <el-select v-model="form.xq" placeholder="请选择学期" @change="checkScheduleConflict">
             <el-option
               v-for="semester in availableSemesters"
               :key="semester.value"
@@ -148,7 +148,7 @@
         </template>
 
         <el-form-item label="期望星期（可选）">
-          <el-select v-model="form.weekDay" placeholder="请选择星期（选填）">
+          <el-select v-model="form.weekDay" placeholder="请选择星期（选填）" clearable @change="checkScheduleConflict">
             <el-option label="周一" value="周一" />
             <el-option label="周二" value="周二" />
             <el-option label="周三" value="周三" />
@@ -157,7 +157,7 @@
           </el-select>
         </el-form-item>
         <el-form-item label="期望时间段（可选）">
-          <el-select v-model="form.period" placeholder="请选择时间段（选填）">
+          <el-select v-model="form.period" placeholder="请选择时间段（选填）" clearable @change="checkScheduleConflict">
             <el-option label="1-2节" value="1-2节" />
             <el-option label="3-4节" value="3-4节" />
             <el-option label="5-6节" value="5-6节" />
@@ -165,6 +165,14 @@
             <el-option label="9-10节" value="9-10节" />
           </el-select>
         </el-form-item>
+        <el-alert
+          v-if="scheduleConflictMessage"
+          :title="scheduleConflictMessage"
+          type="warning"
+          show-icon
+          :closable="false"
+          class="schedule-conflict-alert"
+        />
         <el-form-item label="希望容量" prop="expectedCapacity">
           <el-input-number v-model="form.expectedCapacity" :min="1" :max="999" controls-position="right" />
         </el-form-item>
@@ -230,7 +238,8 @@ import {
   getTeacherApplyInfo,
   getTeacherSemesters,
   getTeacherDepartments,
-  getTeacherCourseCatalog
+  getTeacherCourseCatalog,
+  getTeacherCourses
 } from '@/api/edu/teacher'
 import { getCurrentSemester } from '@/api/edu/semester'
 
@@ -248,6 +257,8 @@ export default {
       availableSemesters: [],
       deptOptions: [],
       courseOptions: [],
+      scheduleConflictMessage: '',
+      lastConflictKey: '',
       queryParams: {
         pageNum: 1,
         pageSize: 10,
@@ -366,8 +377,12 @@ export default {
         xs: '',
         yxhId: '',
         expectedCapacity: null,
+        weekDay: '',
+        period: '',
         remark: ''
       }
+      this.scheduleConflictMessage = ''
+      this.lastConflictKey = ''
       this.open = true
     },
     handleView(row) {
@@ -385,12 +400,73 @@ export default {
       const form = this.$refs['form']
       form.validate(valid => {
         if (valid) {
+          if (this.scheduleConflictMessage) {
+            this.$modal.msgWarning(this.scheduleConflictMessage)
+            return
+          }
           this.doSubmit()
         }
       })
     },
+    checkScheduleConflict() {
+      this.scheduleConflictMessage = ''
+      const { xq, weekDay, period } = this.form
+      if (!xq || !weekDay || !period) {
+        this.lastConflictKey = ''
+        return
+      }
+
+      const conflictKey = [xq, weekDay, period].join('|')
+      getTeacherCourses({ onlyCurrent: false }).then(response => {
+        const rows = response.rows || []
+        const conflict = rows.find(course => {
+          return course.semester === xq && this.normalizeSchedule(course.schedule) === weekDay + period
+        })
+        if (!conflict) {
+          if (this.lastConflictKey === conflictKey) {
+            this.lastConflictKey = ''
+          }
+          return
+        }
+
+        this.scheduleConflictMessage = `该时间段已有课程“${conflict.courseName}”，请选择其他时间段`
+        if (this.lastConflictKey !== conflictKey) {
+          this.$modal.msgWarning(this.scheduleConflictMessage)
+          this.lastConflictKey = conflictKey
+        }
+      })
+    },
+    normalizeSchedule(schedule) {
+      if (!schedule) return ''
+      const firstSchedule = schedule.split(/[,，;；]/)[0].trim()
+      const weekMatch = firstSchedule.match(/^(周一|周二|周三|周四|周五|周六|周日)/)
+      if (!weekMatch) return ''
+      const periodMatch = firstSchedule.match(/(\d+)\s*-\s*(\d+)\s*节/)
+      if (periodMatch) {
+        return `${weekMatch[1]}${periodMatch[1]}-${periodMatch[2]}节`
+      }
+      const timeMatch = firstSchedule.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/)
+      if (timeMatch) {
+        const startMinutes = Number(timeMatch[1]) * 60 + Number(timeMatch[2])
+        const endMinutes = Number(timeMatch[3]) * 60 + Number(timeMatch[4])
+        const period = this.convertTimeRangeToPeriod(startMinutes, endMinutes)
+        return period ? weekMatch[1] + period : ''
+      }
+      return ''
+    },
+    convertTimeRangeToPeriod(startMinutes, endMinutes) {
+      const ranges = [
+        { value: '1-2节', start: 8 * 60, end: 9 * 60 + 40 },
+        { value: '3-4节', start: 10 * 60, end: 11 * 60 + 40 },
+        { value: '5-6节', start: 14 * 60, end: 15 * 60 + 40 },
+        { value: '7-8节', start: 16 * 60, end: 17 * 60 + 40 },
+        { value: '9-10节', start: 19 * 60, end: 20 * 60 + 40 }
+      ]
+      const matched = ranges.find(item => startMinutes === item.start && endMinutes === item.end)
+      return matched ? matched.value : ''
+    },
     doSubmit() {
-      const schedule = this.form.weekDay && this.form.period ? this.form.weekDay + this.form.period : ''
+      const schedule = this.form.weekDay && this.form.period ? this.formatCourseSchedule(this.form.weekDay, this.form.period) : ''
       const data = {
         xq: this.form.xq,
         courseType: this.form.courseType,
@@ -411,6 +487,8 @@ export default {
     },
     cancel() {
       this.open = false
+      this.scheduleConflictMessage = ''
+      this.lastConflictKey = ''
       this.form = {
         xq: '',
         courseType: 'existing',
@@ -424,6 +502,16 @@ export default {
         period: '',
         remark: ''
       }
+    },
+    formatCourseSchedule(weekDay, period) {
+      const timeMap = {
+        '1-2节': '8:00-9:40',
+        '3-4节': '10:00-11:40',
+        '5-6节': '14:00-15:40',
+        '7-8节': '16:00-17:40',
+        '9-10节': '19:00-20:40'
+      }
+      return weekDay + ' ' + (timeMap[period] || period)
     },
     getStatusType(status) {
       switch (status) {
@@ -457,5 +545,10 @@ export default {
 .empty-info {
   padding: 20px 0;
   text-align: center;
+}
+
+.schedule-conflict-alert {
+  margin: -8px 0 16px 100px;
+  width: calc(100% - 100px);
 }
 </style>

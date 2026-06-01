@@ -38,6 +38,20 @@ public interface CourseOfferingMapper
     public List<CourseOffering> selectCourseOfferingList(CourseOffering courseOffering);
 
     /**
+     * 查询同一学期同一教师的其他开课，用于校验时间冲突
+     */
+    public List<CourseOffering> selectTeacherOfferingsForConflict(@Param("semester") String semester,
+                                                                  @Param("teacherId") Long teacherId,
+                                                                  @Param("excludeOfferingId") Long excludeOfferingId);
+
+    /**
+     * 查询同一学期同一地点的其他开课，用于校验时间冲突
+     */
+    public List<CourseOffering> selectLocationOfferingsForConflict(@Param("semester") String semester,
+                                                                   @Param("location") String location,
+                                                                   @Param("excludeOfferingId") Long excludeOfferingId);
+
+    /**
      * 新增开课
      * 
      * @param courseOffering 开课
@@ -72,6 +86,11 @@ public interface CourseOfferingMapper
     public int countBySemester(String semester);
 
     public int deleteBySemester(String semester);
+
+    /**
+     * 统计课程对应的开课记录数
+     */
+    public int countByCourseId(@Param("courseId") Long courseId);
 
     /**
      * 统计教师本学期授课门数

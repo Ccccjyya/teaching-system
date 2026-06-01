@@ -84,6 +84,16 @@ public interface EnrollmentMapper
     public int deleteBySemester(String semester);
 
     /**
+     * 统计某个开课的有效选课人数
+     */
+    public int countActiveByOfferingId(@Param("offeringId") Long offeringId);
+
+    /**
+     * 删除某个开课对应的选课记录
+     */
+    public int deleteByOfferingId(@Param("offeringId") Long offeringId);
+
+    /**
      * 查询学生成绩列表
      */
     public List<StudentGradeVO> selectStudentGrades(@Param("studentId") Long studentId, @Param("academicYear") String academicYear, @Param("semester") String semester);

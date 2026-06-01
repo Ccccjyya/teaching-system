@@ -29,6 +29,42 @@
           @keyup.enter.native="handleQuery"
         />
       </el-form-item>
+      <el-form-item label="教师">
+        <el-select
+          v-model="queryParams.teacherId"
+          placeholder="请选择教师"
+          clearable
+          filterable
+          style="width: 180px"
+        >
+          <el-option
+            v-for="teacher in teacherList"
+            :key="teacher.teacherId"
+            :label="teacher.teacherName"
+            :value="teacher.teacherId"
+          />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="星期">
+        <el-select v-model="queryParams.weekday" placeholder="请选择星期" clearable style="width: 120px">
+          <el-option label="周一" value="周一" />
+          <el-option label="周二" value="周二" />
+          <el-option label="周三" value="周三" />
+          <el-option label="周四" value="周四" />
+          <el-option label="周五" value="周五" />
+          <el-option label="周六" value="周六" />
+          <el-option label="周日" value="周日" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="时间段">
+        <el-select v-model="queryParams.timePeriod" placeholder="请选择时间段" clearable style="width: 140px">
+          <el-option label="1-2节" value="1-2节" />
+          <el-option label="3-4节" value="3-4节" />
+          <el-option label="5-6节" value="5-6节" />
+          <el-option label="7-8节" value="7-8节" />
+          <el-option label="9-10节" value="9-10节" />
+        </el-select>
+      </el-form-item>
       <el-form-item>
         <el-button type="primary" icon="el-icon-search" size="mini" @click="handleQuery">查询</el-button>
         <el-button icon="el-icon-refresh" size="mini" @click="resetQuery">重置</el-button>
@@ -149,6 +185,7 @@
 <script>
 import { adminListCourseOffering, getCourseOffering, updateCourseOffering, delCourseOffering } from '@/api/edu/courseOffering'
 import { listSemester } from '@/api/edu/global'
+import { listTeacher } from '@/api/edu/teacher'
 
 export default {
   name: 'CourseOffering',
@@ -163,13 +200,19 @@ export default {
         pageSize: 10,
         semester: undefined,
         courseNo: undefined,
-        courseName: undefined
+        courseName: undefined,
+        teacherId: undefined,
+        weekday: undefined,
+        timePeriod: undefined
       },
       form: {
         course: {},
-        teacher: {}
+        teacher: {},
+        weekDay: undefined,
+        period: undefined
       },
       semesterList: [],
+      teacherList: [],
       ids: [],
       rules: {
         weekDay: [
@@ -192,6 +235,7 @@ export default {
   created() {
     this.getList()
     this.getSemesterList()
+    this.getTeacherList()
   },
   methods: {
     formatSemester(semesterCode) {
@@ -218,6 +262,11 @@ export default {
         this.semesterList = response.rows
       })
     },
+    getTeacherList() {
+      listTeacher({ pageNum: 1, pageSize: 1000 }).then(response => {
+        this.teacherList = response.rows || []
+      })
+    },
     handleQuery() {
       this.queryParams.pageNum = 1
       this.getList()
@@ -228,21 +277,69 @@ export default {
         pageSize: 10,
         semester: undefined,
         courseNo: undefined,
-        courseName: undefined
+        courseName: undefined,
+        teacherId: undefined,
+        weekday: undefined,
+        timePeriod: undefined
       }
       this.getList()
     },
+    getEmptyForm() {
+      return {
+        course: {},
+        teacher: {},
+        weekDay: undefined,
+        period: undefined
+      }
+    },
+    parseSchedule(schedule) {
+      const result = {
+        weekDay: undefined,
+        period: undefined
+      }
+      if (!schedule) {
+        return result
+      }
+
+      const firstSchedule = schedule.split(/[,，;；]/)[0].trim()
+      const weekMatch = firstSchedule.match(/^(周一|周二|周三|周四|周五|周六|周日)/)
+      if (weekMatch) {
+        result.weekDay = weekMatch[1]
+      }
+
+      const periodMatch = firstSchedule.match(/(\d+)\s*-\s*(\d+)\s*节/)
+      if (periodMatch) {
+        result.period = `${periodMatch[1]}-${periodMatch[2]}节`
+        return result
+      }
+
+      const timeMatch = firstSchedule.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/)
+      if (timeMatch) {
+        const startMinutes = Number(timeMatch[1]) * 60 + Number(timeMatch[2])
+        const endMinutes = Number(timeMatch[3]) * 60 + Number(timeMatch[4])
+        result.period = this.convertTimeRangeToPeriod(startMinutes, endMinutes)
+      }
+      return result
+    },
+    convertTimeRangeToPeriod(startMinutes, endMinutes) {
+      const ranges = [
+        { value: '1-2节', start: 8 * 60, end: 9 * 60 + 40 },
+        { value: '3-4节', start: 10 * 60, end: 11 * 60 + 40 },
+        { value: '5-6节', start: 14 * 60, end: 15 * 60 + 40 },
+        { value: '7-8节', start: 16 * 60, end: 17 * 60 + 40 },
+        { value: '9-10节', start: 19 * 60, end: 20 * 60 + 40 }
+      ]
+      const matched = ranges.find(item => startMinutes === item.start && endMinutes === item.end)
+      return matched ? matched.value : undefined
+    },
     handleEdit(row) {
       getCourseOffering(row.offeringId).then(response => {
-        this.form = Object.assign({}, { course: {}, teacher: {} }, response.data)
-        if (this.form.schedule) {
-          const match = this.form.schedule.match(/^(周一|周二|周三|周四|周五)(.+)$/)
-          if (match) {
-            this.form.weekDay = match[1]
-            this.form.period = match[2]
-          }
-        }
+        const parsedSchedule = this.parseSchedule(response.data.schedule)
+        this.form = Object.assign({}, this.getEmptyForm(), response.data, parsedSchedule)
         this.open = true
+        this.$nextTick(() => {
+          this.$refs.form && this.$refs.form.clearValidate()
+        })
       })
     },
     handleSelectionChange(selection) {
@@ -251,7 +348,7 @@ export default {
     submitForm() {
       this.$refs['form'].validate(valid => {
         if (valid) {
-          this.form.schedule = this.form.weekDay + this.form.period
+          this.form.schedule = this.formatCourseSchedule(this.form.weekDay, this.form.period)
           updateCourseOffering(this.form).then(() => {
             this.$modal.msgSuccess('修改成功')
             this.open = false
@@ -270,7 +367,7 @@ export default {
     },
     cancel() {
       this.open = false
-      this.form = { course: {}, teacher: {} }
+      this.form = this.getEmptyForm()
     },
     handleExport() {
       const _this = this
@@ -279,6 +376,16 @@ export default {
           ..._this.queryParams
         }, 'offering.xlsx')
       }).catch(() => {})
+    },
+    formatCourseSchedule(weekDay, period) {
+      const timeMap = {
+        '1-2节': '8:00-9:40',
+        '3-4节': '10:00-11:40',
+        '5-6节': '14:00-15:40',
+        '7-8节': '16:00-17:40',
+        '9-10节': '19:00-20:40'
+      }
+      return weekDay + ' ' + (timeMap[period] || period)
     }
   }
 }
