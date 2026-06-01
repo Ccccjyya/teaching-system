@@ -107,11 +107,11 @@ mysql -uroot -p < sql/seed.sql
    - `trg_enrollment_after_insert`
    - `trg_enrollment_after_delete`
    - `trg_enrollment_after_update`
-   - 作用：当选课记录新增/删除/状态变更时，自动维护 `edu_course_offering.selected_count`（开课已选人数），避免前后端重复计算导致数据不一致。
+   - 作用：当选课记录新增/删除/状态变更时，自动维护 `edu_course_offering.selected_count`（开课已选人数），保证开课人数与选课记录实时一致，避免手工维护带来的数据偏差。
 
 2. 存储过程
    - `sp_apply_commit`
-   - 作用：用于开课申请审核通过时的一体化落库逻辑（课程匹配/创建、开课信息写入、申请状态更新等），保证流程原子性，减少跨多条 SQL 的中间状态问题。
+   - 作用：用于开课申请“审核通过”时的一体化事务处理，包含课程匹配/创建、开课信息写入、申请状态更新，并在入库前校验同学期同教师同时间冲突、同学期同地点同时间冲突，同时统一上课时间格式，确保开课数据一致性和流程原子性。
 
 说明：只要按 README 的初始化顺序执行 `schema.sql` 和 `seed.sql`，上述触发器和存储过程会自动创建，无需手动再建。
 
