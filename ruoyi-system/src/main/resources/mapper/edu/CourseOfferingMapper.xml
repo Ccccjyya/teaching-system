@@ -109,6 +109,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <include refid="selectCourseOfferingVo"/>
         where o.offering_id = #{offeringId}
     </select>
+
+    <select id="selectCourseOfferingByOfferingIdForUpdate" parameterType="Long" resultMap="CourseOfferingResult">
+        <include refid="selectCourseOfferingVo"/>
+        where o.offering_id = #{offeringId}
+        for update
+    </select>
         
     <insert id="insertCourseOffering" parameterType="CourseOffering" useGeneratedKeys="true" keyProperty="offeringId">
         insert into edu_course_offering

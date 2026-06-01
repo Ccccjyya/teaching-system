@@ -6,9 +6,7 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import com.ruoyi.common.annotation.Excel;
 import com.ruoyi.common.annotation.Excel.ColumnType;
 import com.ruoyi.common.core.domain.BaseEntity;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
 
 /**
  * 选课对象 edu_enrollment
@@ -31,18 +29,6 @@ public class Enrollment extends BaseEntity
     @Excel(name = "课程名称", targetAttr = "course.courseName")
     private CourseOffering courseOffering;
 
-    /** 学年 */
-    @Excel(name = "学年")
-    @NotBlank(message = "学年不能为空")
-    @Size(min = 0, max = 20, message = "学年长度不能超过20个字符")
-    private String academicYear;
-
-    /** 学期 */
-    @Excel(name = "学期")
-    @NotBlank(message = "学期不能为空")
-    @Size(min = 0, max = 20, message = "学期长度不能超过20个字符")
-    private String semester;
-
     /** 学生ID */
     @NotNull(message = "学生不能为空")
     private Long studentId;
@@ -50,20 +36,6 @@ public class Enrollment extends BaseEntity
     /** 学生对象 */
     @Excel(name = "学生姓名", targetAttr = "studentName")
     private Student student;
-
-    /** 课程号 */
-    @Excel(name = "课程号")
-    @NotBlank(message = "课程号不能为空")
-    @Size(min = 0, max = 20, message = "课程号长度不能超过20个字符")
-    private String courseNo;
-
-    /** 教师ID */
-    @NotNull(message = "教师不能为空")
-    private Long teacherId;
-
-    /** 教师对象 */
-    @Excel(name = "授课教师", targetAttr = "teacherName")
-    private Teacher teacher;
 
     /** 学生手机号 */
     @Excel(name = "学生手机号", cellType = ColumnType.TEXT)
@@ -113,22 +85,6 @@ public class Enrollment extends BaseEntity
         this.courseOffering = courseOffering;
     }
 
-    public String getAcademicYear() {
-        return academicYear;
-    }
-
-    public void setAcademicYear(String academicYear) {
-        this.academicYear = academicYear;
-    }
-
-    public String getSemester() {
-        return semester;
-    }
-
-    public void setSemester(String semester) {
-        this.semester = semester;
-    }
-
     public Long getStudentId() {
         return studentId;
     }
@@ -143,30 +99,6 @@ public class Enrollment extends BaseEntity
 
     public void setStudent(Student student) {
         this.student = student;
-    }
-
-    public String getCourseNo() {
-        return courseNo;
-    }
-
-    public void setCourseNo(String courseNo) {
-        this.courseNo = courseNo;
-    }
-
-    public Long getTeacherId() {
-        return teacherId;
-    }
-
-    public void setTeacherId(Long teacherId) {
-        this.teacherId = teacherId;
-    }
-
-    public Teacher getTeacher() {
-        return teacher;
-    }
-
-    public void setTeacher(Teacher teacher) {
-        this.teacher = teacher;
     }
 
     public String getStudentPhone() {
@@ -222,11 +154,7 @@ public class Enrollment extends BaseEntity
         return new ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
                 .append("enrollmentId", getEnrollmentId())
                 .append("offeringId", getOfferingId())
-                .append("academicYear", getAcademicYear())
-                .append("semester", getSemester())
                 .append("studentId", getStudentId())
-                .append("courseNo", getCourseNo())
-                .append("teacherId", getTeacherId())
                 .append("usualScore", getUsualScore())
                 .append("examScore", getExamScore())
                 .append("totalScore", getTotalScore())

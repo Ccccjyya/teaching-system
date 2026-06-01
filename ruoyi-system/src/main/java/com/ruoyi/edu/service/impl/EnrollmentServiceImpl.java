@@ -99,7 +99,6 @@ public class EnrollmentServiceImpl implements IEnrollmentService
     @Override
     public int insertEnrollment(Enrollment enrollment)
     {
-        fillEnrollmentFromOffering(enrollment);
         return enrollmentMapper.insertEnrollment(enrollment);
     }
 
@@ -124,7 +123,7 @@ public class EnrollmentServiceImpl implements IEnrollmentService
         }
         
         // 2. 查询要选的开课信息
-        CourseOffering courseOffering = courseOfferingMapper.selectCourseOfferingByOfferingId(enrollment.getOfferingId());
+        CourseOffering courseOffering = courseOfferingMapper.selectCourseOfferingByOfferingIdForUpdate(enrollment.getOfferingId());
         if (StringUtils.isNull(courseOffering))
         {
             throw new ServiceException("开课信息不存在");
@@ -147,21 +146,7 @@ public class EnrollmentServiceImpl implements IEnrollmentService
         checkTimeConflict(enrollment.getStudentId(), courseOffering);
 
         // 5. 补全选课信息
-        enrollment.setCourseNo(courseOffering.getCourseNo());
-        enrollment.setTeacherId(courseOffering.getTeacherId());
         enrollment.setStatus("0");
-        
-        // 从开课中获取学期信息并解析
-        if (courseOffering.getSemester() != null) {
-            String courseSemester = courseOffering.getSemester();
-            // 格式如 "2024-2025-1"，拆分为 academic_year 和 semester
-            String[] parts = courseSemester.split("-");
-            if (parts.length >= 3) {
-                // "2024-2025-1" -> academic_year = "2024-2025", semester = "1"
-                enrollment.setAcademicYear(parts[0] + "-" + parts[1]);
-                enrollment.setSemester(parts[2]);
-            }
-        }
 
         // 6. 保存选课记录（重复选课用唯一键兜底，避免误判）
         int result;
@@ -417,33 +402,7 @@ public class EnrollmentServiceImpl implements IEnrollmentService
     @Override
     public int updateEnrollment(Enrollment enrollment)
     {
-        fillEnrollmentFromOffering(enrollment);
         return enrollmentMapper.updateEnrollment(enrollment);
-    }
-
-    private void fillEnrollmentFromOffering(Enrollment enrollment)
-    {
-        if (enrollment == null || enrollment.getOfferingId() == null)
-        {
-            return;
-        }
-        CourseOffering courseOffering = courseOfferingMapper.selectCourseOfferingByOfferingId(enrollment.getOfferingId());
-        if (StringUtils.isNull(courseOffering))
-        {
-            throw new ServiceException("开课信息不存在");
-        }
-        enrollment.setCourseNo(courseOffering.getCourseNo());
-        enrollment.setTeacherId(courseOffering.getTeacherId());
-        String courseSemester = courseOffering.getSemester();
-        if (StringUtils.isNotEmpty(courseSemester))
-        {
-            String[] parts = courseSemester.split("-");
-            if (parts.length >= 3)
-            {
-                enrollment.setAcademicYear(parts[0] + "-" + parts[1]);
-                enrollment.setSemester(parts[2]);
-            }
-        }
     }
 
     /**

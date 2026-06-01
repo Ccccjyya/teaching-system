@@ -7,11 +7,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <resultMap type="Enrollment" id="EnrollmentResult">
         <result property="enrollmentId"    column="enrollment_id"    />
         <result property="offeringId"    column="offering_id"    />
-        <result property="academicYear"    column="academic_year"    />
-        <result property="semester"    column="semester"    />
         <result property="studentId"    column="student_id"    />
-        <result property="courseNo"    column="course_no"    />
-        <result property="teacherId"    column="teacher_id"    />
         <result property="usualScore"    column="usual_score"    />
         <result property="examScore"    column="exam_score"    />
         <result property="totalScore"    column="total_score"    />
@@ -52,7 +48,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </resultMap>
 
     <sql id="selectEnrollmentVo">
-        select e.enrollment_id, e.offering_id, e.academic_year, e.semester, e.student_id, e.course_no, e.teacher_id,
+        select e.enrollment_id, e.offering_id, e.student_id,
                e.usual_score, e.exam_score, e.total_score, e.status,
                e.create_by, e.create_time, e.update_by, e.update_time, e.remark,
                o.offering_id as co_offering_id, o.schedule as co_schedule, o.location as co_location, o.semester as co_semester,
@@ -73,11 +69,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         <where>  
             <if test="studentId != null "> and e.student_id = #{studentId}</if>
             <if test="offeringId != null "> and e.offering_id = #{offeringId}</if>
-            <if test="courseNo != null  and courseNo != ''"> and e.course_no like concat('%', #{courseNo}, '%')</if>
-            <if test="teacherId != null "> and e.teacher_id = #{teacherId}</if>
             <if test="status != null  and status != ''"> and e.status = #{status}</if>
-            <if test="academicYear != null  and academicYear != ''"> and e.academic_year = #{academicYear}</if>
-            <if test="semester != null  and semester != ''"> and e.semester = #{semester}</if>
         </where>
     </select>
     
@@ -89,10 +81,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     <select id="selectEnrollmentByStudentId" parameterType="Long" resultMap="EnrollmentResult">
         <include refid="selectEnrollmentVo"/>
         where e.student_id = #{studentId} and e.status = '0'
-        and (
-            o.semester = (select semester_value from edu_semester where is_current = 1 limit 1)
-            or CONCAT(e.academic_year, '-', e.semester) = (select semester_value from edu_semester where is_current = 1 limit 1)
-        )
+        and o.semester = (select semester_value from edu_semester where is_current = 1 limit 1)
     </select>
 
     <select id="selectActiveEnrollmentByStudentIdAndOfferingId" resultMap="EnrollmentResult">
@@ -107,11 +96,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         insert into edu_enrollment
         <trim prefix="(" suffix=")" suffixOverrides=",">
             <if test="offeringId != null">offering_id,</if>
-            <if test="academicYear != null and academicYear != ''">academic_year,</if>
-            <if test="semester != null and semester != ''">semester,</if>
             <if test="studentId != null">student_id,</if>
-            <if test="courseNo != null and courseNo != ''">course_no,</if>
-            <if test="teacherId != null">teacher_id,</if>
             <if test="usualScore != null">usual_score,</if>
             <if test="examScore != null">exam_score,</if>
             <if test="totalScore != null">total_score,</if>
@@ -124,11 +109,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
          </trim>
         <trim prefix="values (" suffix=")" suffixOverrides=",">
             <if test="offeringId != null">#{offeringId},</if>
-            <if test="academicYear != null and academicYear != ''">#{academicYear},</if>
-            <if test="semester != null and semester != ''">#{semester},</if>
             <if test="studentId != null">#{studentId},</if>
-            <if test="courseNo != null and courseNo != ''">#{courseNo},</if>
-            <if test="teacherId != null">#{teacherId},</if>
             <if test="usualScore != null">#{usualScore},</if>
             <if test="examScore != null">#{examScore},</if>
             <if test="totalScore != null">#{totalScore},</if>
@@ -145,11 +126,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         update edu_enrollment
         <trim prefix="SET" suffixOverrides=",">
             <if test="offeringId != null">offering_id = #{offeringId},</if>
-            <if test="academicYear != null and academicYear != ''">academic_year = #{academicYear},</if>
-            <if test="semester != null and semester != ''">semester = #{semester},</if>
             <if test="studentId != null">student_id = #{studentId},</if>
-            <if test="courseNo != null and courseNo != ''">course_no = #{courseNo},</if>
-            <if test="teacherId != null">teacher_id = #{teacherId},</if>
             <if test="usualScore != null">usual_score = #{usualScore},</if>
             <if test="examScore != null">exam_score = #{examScore},</if>
             <if test="totalScore != null">total_score = #{totalScore},</if>
@@ -173,11 +150,11 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
     </delete>
 
     <select id="countBySemester" parameterType="String" resultType="Integer">
-        select count(0) from edu_enrollment where semester = #{semester}
+        select count(0) from edu_enrollment e left join edu_course_offering o on e.offering_id = o.offering_id where o.semester = #{semester}
     </select>
 
     <delete id="deleteBySemester" parameterType="String">
-        delete from edu_enrollment where semester = #{semester}
+        delete e from edu_enrollment e left join edu_course_offering o on e.offering_id = o.offering_id where o.semester = #{semester}
     </delete>
 
     <resultMap type="com.ruoyi.edu.vo.StudentGradeVO" id="StudentGradeResult">
@@ -208,8 +185,10 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 
     <select id="selectStudentGrades" resultMap="StudentGradeResult">
         SELECT e.enrollment_id, c.course_no, c.course_name, c.credit, 
-               t.teacher_name, e.academic_year, e.semester,
-               CASE e.semester WHEN '1' THEN '秋季学期' WHEN '2' THEN '春季学期' END AS semester_name,
+               t.teacher_name, 
+               SUBSTRING_INDEX(o.semester, '-', 2) AS academic_year,
+               SUBSTRING_INDEX(o.semester, '-', -1) AS semester,
+               CASE SUBSTRING_INDEX(o.semester, '-', -1) WHEN '1' THEN '秋季学期' WHEN '2' THEN '春季学期' END AS semester_name,
                e.usual_score, e.exam_score, e.total_score
         FROM edu_enrollment e
         LEFT JOIN edu_course_offering o ON e.offering_id = o.offering_id
@@ -217,64 +196,47 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         LEFT JOIN edu_teacher t ON o.teacher_id = t.teacher_id
         WHERE e.student_id = #{studentId}
         <if test="academicYear != null and academicYear != ''">
-            AND e.academic_year = #{academicYear}
+            AND o.semester LIKE CONCAT(#{academicYear}, '-%')
         </if>
         <if test="semester != null and semester != ''">
-            AND e.semester = #{semester}
+            AND o.semester LIKE CONCAT('%-', #{semester})
         </if>
-        ORDER BY e.academic_year DESC, e.semester DESC
+        ORDER BY o.semester DESC
     </select>
 
     <select id="selectStudentCourseTable" resultMap="CourseTableResult">
         SELECT e.enrollment_id, c.course_no, c.course_name, c.credit,
                t.teacher_name, o.schedule, o.location,
-               e.academic_year, e.semester
+               SUBSTRING_INDEX(o.semester, '-', 2) AS academic_year,
+               SUBSTRING_INDEX(o.semester, '-', -1) AS semester
         FROM edu_enrollment e
         LEFT JOIN edu_course_offering o ON e.offering_id = o.offering_id
         LEFT JOIN edu_course c ON o.course_id = c.course_id
         LEFT JOIN edu_teacher t ON o.teacher_id = t.teacher_id
         WHERE e.student_id = #{studentId}
         <if test="academicYear != null and academicYear != '' and semester != null and semester != ''">
-            AND (
-                (e.academic_year = #{academicYear} AND e.semester = #{semester})
-                OR (
-                    (e.academic_year IS NULL or e.academic_year = '' or e.semester IS NULL or e.semester = '')
-                    AND o.semester = CONCAT(#{academicYear}, '-', #{semester})
-                )
-            )
+            AND o.semester = CONCAT(#{academicYear}, '-', #{semester})
             AND (
                 CONCAT(#{academicYear}, '-', #{semester}) != (SELECT semester_value FROM edu_semester WHERE is_current = 1 LIMIT 1)
                 OR e.status = '0'
             )
         </if>
         <if test="academicYear != null and academicYear != '' and (semester == null or semester == '')">
-            AND (
-                e.academic_year = #{academicYear}
-                OR (
-                    (e.academic_year IS NULL or e.academic_year = '')
-                    AND o.semester LIKE CONCAT(#{academicYear}, '-%')
-                )
-            )
+            AND o.semester LIKE CONCAT(#{academicYear}, '-%')
         </if>
         <if test="(academicYear == null or academicYear == '') and semester != null and semester != ''">
-            AND (
-                e.semester = #{semester}
-                OR (
-                    (e.semester IS NULL or e.semester = '')
-                    AND o.semester LIKE CONCAT('%-', #{semester})
-                )
-            )
+            AND o.semester LIKE CONCAT('%-', #{semester})
         </if>
-        ORDER BY e.academic_year DESC, e.semester DESC
+        ORDER BY o.semester DESC
     </select>
 
     <select id="selectStudentEnrollmentSemesters" resultType="String">
-        SELECT DISTINCT COALESCE(o.semester, CONCAT(e.academic_year, '-', e.semester)) AS semester_value
+        SELECT DISTINCT o.semester AS semester_value
         FROM edu_enrollment e
         LEFT JOIN edu_course_offering o ON e.offering_id = o.offering_id
         WHERE e.student_id = #{studentId}
-          AND COALESCE(o.semester, CONCAT(e.academic_year, '-', e.semester)) IS NOT NULL
-          AND COALESCE(o.semester, CONCAT(e.academic_year, '-', e.semester)) != ''
+          AND o.semester IS NOT NULL
+          AND o.semester != ''
         ORDER BY semester_value DESC
     </select>
 
@@ -285,10 +247,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         LEFT JOIN edu_course c ON o.course_id = c.course_id
         WHERE e.student_id = #{studentId}
           AND e.status = '0'
-          AND (
-              o.semester = (SELECT semester_value FROM edu_semester WHERE is_current = 1 LIMIT 1)
-              OR CONCAT(e.academic_year, '-', e.semester) = (SELECT semester_value FROM edu_semester WHERE is_current = 1 LIMIT 1)
-          )
+          AND o.semester = (SELECT semester_value FROM edu_semester WHERE is_current = 1 LIMIT 1)
     </select>
 
     <select id="sumCompletedCredits" resultType="int">

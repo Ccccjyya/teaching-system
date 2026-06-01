@@ -22,6 +22,14 @@ public interface CourseOfferingMapper
     public CourseOffering selectCourseOfferingByOfferingId(Long offeringId);
 
     /**
+     * 查询开课并锁定对应行，用于选课容量校验
+     *
+     * @param offeringId 开课主键
+     * @return 开课
+     */
+    public CourseOffering selectCourseOfferingByOfferingIdForUpdate(Long offeringId);
+
+    /**
      * 查询开课列表
      * 
      * @param courseOffering 开课

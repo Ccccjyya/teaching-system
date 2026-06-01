@@ -107,13 +107,8 @@ public class EnrollmentController extends BaseController
         if (enrollment == null || currentSemesterValue == null) {
             return false;
         }
-        if (enrollment.getCourseOffering() != null
-                && currentSemesterValue.equals(enrollment.getCourseOffering().getSemester())) {
-            return true;
-        }
-        String academicYear = enrollment.getAcademicYear();
-        String semester = enrollment.getSemester();
-        return academicYear != null && semester != null && currentSemesterValue.equals(academicYear + "-" + semester);
+        return enrollment.getCourseOffering() != null
+                && currentSemesterValue.equals(enrollment.getCourseOffering().getSemester());
     }
 
     /**
@@ -124,12 +119,6 @@ public class EnrollmentController extends BaseController
     @PostMapping("/export")
     public void export(HttpServletResponse response, Enrollment enrollment)
     {
-        if (!SecurityUtils.getLoginUser().getPermissions().contains("*:*:*")) {
-            Teacher teacher = teacherService.selectTeacherByUserId(getUserId());
-            if (teacher != null) {
-                enrollment.setTeacherId(teacher.getTeacherId());
-            }
-        }
         List<Enrollment> list = enrollmentService.selectEnrollmentList(enrollment);
         ExcelUtil<Enrollment> util = new ExcelUtil<Enrollment>(Enrollment.class);
         util.exportExcel(response, list, "选课数据");

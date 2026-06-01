@@ -75,11 +75,7 @@ DROP TABLE IF EXISTS `edu_enrollment`;
 CREATE TABLE `edu_enrollment` (
   `enrollment_id` bigint NOT NULL AUTO_INCREMENT COMMENT '选课ID',
   `offering_id` bigint NOT NULL COMMENT '开课ID',
-  `academic_year` varchar(20) NOT NULL COMMENT '学年',
-  `semester` varchar(20) NOT NULL COMMENT '学期',
   `student_id` bigint NOT NULL COMMENT '学生ID',
-  `course_no` varchar(20) NOT NULL COMMENT '课程号',
-  `teacher_id` bigint NOT NULL COMMENT '教师ID',
   `usual_score` decimal(5,2) DEFAULT NULL COMMENT '平时成绩',
   `exam_score` decimal(5,2) DEFAULT NULL COMMENT '考试成绩',
   `total_score` decimal(5,2) DEFAULT NULL COMMENT '总评成绩',
