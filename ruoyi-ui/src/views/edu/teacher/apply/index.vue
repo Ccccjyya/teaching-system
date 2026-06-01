@@ -54,7 +54,11 @@
 
     <el-card class="box-card" v-if="total > 0">
       <el-table v-loading="loading" :data="currentPageData" border>
-        <el-table-column label="申请学期" align="center" prop="xq" width="180" />
+        <el-table-column label="申请学期" align="center" prop="xq" width="180">
+          <template slot-scope="scope">
+            {{ formatSemester(scope.row.xq) }}
+          </template>
+        </el-table-column>
         <el-table-column label="课程名称" align="center" prop="km" />
         <el-table-column label="学分" align="center" prop="xf" width="80" />
         <el-table-column label="开课院系" align="center" prop="yxm" width="150" />
@@ -195,7 +199,7 @@
     <el-dialog title="申请详情" :visible.sync="viewOpen" width="600px" append-to-body>
       <el-form :model="viewForm" label-width="100px" disabled>
         <el-form-item label="申请学期">
-          <span>{{ viewForm.xq }}</span>
+          <span>{{ formatSemester(viewForm.xq) }}</span>
         </el-form-item>
         <el-form-item label="课程名称">
           <span>{{ viewForm.km }}</span>
@@ -305,6 +309,16 @@ export default {
     this.loadCourses()
   },
   methods: {
+    formatSemester(semesterCode) {
+      if (!semesterCode) return '-'
+      const parts = String(semesterCode).split('-')
+      if (parts.length >= 3) {
+        const term = parts[2]
+        const termName = term === '1' ? '秋季学期' : term === '2' ? '春季学期' : term
+        return `${parts[0]}-${parts[1]}${termName}`
+      }
+      return semesterCode
+    },
     getList() {
       this.loading = true
       getTeacherApplyList(this.queryParams).then(response => {

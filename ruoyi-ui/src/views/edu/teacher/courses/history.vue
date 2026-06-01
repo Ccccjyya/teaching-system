@@ -68,7 +68,7 @@
     </div>
 
     <el-dialog :title="(currentCourse && currentCourse.courseName) || '课程详情'" :visible.sync="open" width="900px" append-to-body>
-      <el-tabs v-model="activeTab" type="card">
+      <el-tabs v-model="activeTab" type="card" @tab-click="handleTabClick">
         <el-tab-pane label="学生名单" name="students">
           <el-form :model="studentQuery" ref="studentQueryForm" size="small" :inline="true" class="mb8">
             <el-form-item>
@@ -223,10 +223,9 @@ export default {
       if (!semesterCode) return '-'
       const parts = semesterCode.split('-')
       if (parts.length >= 3) {
-        const year = parts[0]
         const term = parts[2]
         const termName = term === '1' ? '秋季学期' : term === '2' ? '春季学期' : term
-        return `${year}-${parseInt(year) + 1}学年 ${termName}`
+        return `${parts[0]}-${parts[1]}${termName}`
       }
       return semesterCode
     },
@@ -324,6 +323,15 @@ export default {
         this.scoreLoading = false
         this.open = true
       })
+    },
+    handleTabClick(tab) {
+      if (!this.currentCourse) return
+      if (tab.name === 'students') {
+        this.handleStudentQuery()
+      }
+      if (tab.name === 'statistics') {
+        this.viewScores(this.currentCourse)
+      }
     },
     handleStudentQuery() {
       if (!this.currentCourse) return
