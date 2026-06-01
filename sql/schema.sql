@@ -37,7 +37,6 @@ DROP TABLE IF EXISTS `edu_course_offering`;
 CREATE TABLE `edu_course_offering` (
   `offering_id` bigint NOT NULL AUTO_INCREMENT COMMENT '开课ID',
   `course_id` bigint NOT NULL COMMENT '课程ID',
-  `course_no` varchar(20) NOT NULL COMMENT '课程号',
   `teacher_id` bigint NOT NULL COMMENT '教师ID',
   `schedule` varchar(50) NOT NULL COMMENT '上课时间（格式：周一1-2节,周三3-4节）',
   `location` varchar(50) DEFAULT NULL COMMENT '上课地点',
@@ -906,9 +905,9 @@ proc_main: BEGIN
     END IF;
 
     INSERT INTO edu_course_offering(
-        course_id, course_no, semester, teacher_id, schedule, location, max_capacity, selected_count, create_by, create_time
+        course_id, semester, teacher_id, schedule, location, max_capacity, selected_count, create_by, create_time
     ) VALUES (
-        v_course_id, v_course_no, v_xq, v_teacher_id, p_schedule, p_location, v_capacity, 0, v_operator, v_now
+        v_course_id, v_xq, v_teacher_id, p_schedule, p_location, v_capacity, 0, v_operator, v_now
     );
 
     UPDATE edu_teacher_course_apply
@@ -954,6 +953,23 @@ SET @sql_add_xs := IF(
 PREPARE stmt_add_xs FROM @sql_add_xs;
 EXECUTE stmt_add_xs;
 DEALLOCATE PREPARE stmt_add_xs;
+
+-- 兼容旧库：开课表课程号已由 edu_course.course_no 派生，移除冗余字段（幂等）
+SET @has_offering_course_no := (
+    SELECT COUNT(1)
+    FROM information_schema.columns
+    WHERE table_schema = DATABASE()
+      AND table_name = 'edu_course_offering'
+      AND column_name = 'course_no'
+);
+SET @sql_drop_offering_course_no := IF(
+    @has_offering_course_no > 0,
+    'ALTER TABLE `edu_course_offering` DROP COLUMN `course_no`',
+    'SELECT ''skip drop course_no'' AS msg'
+);
+PREPARE stmt_drop_offering_course_no FROM @sql_drop_offering_course_no;
+EXECUTE stmt_drop_offering_course_no;
+DEALLOCATE PREPARE stmt_drop_offering_course_no;
 
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 

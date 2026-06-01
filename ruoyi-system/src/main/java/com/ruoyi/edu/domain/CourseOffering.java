@@ -32,7 +32,6 @@ public class CourseOffering extends BaseEntity
 
     /** 课程号 */
     @Excel(name = "课程号")
-    @NotBlank(message = "课程号不能为空")
     @Size(min = 0, max = 20, message = "课程号长度不能超过20个字符")
     private String courseNo;
 

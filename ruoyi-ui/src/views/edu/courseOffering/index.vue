@@ -104,8 +104,8 @@
 
     <el-dialog title="修改开课信息" :visible.sync="open" width="500px" append-to-body>
       <el-form ref="form" :model="form" :rules="rules" label-width="100px">
-        <el-form-item label="课程号" prop="courseNo">
-          <el-input v-model="form.courseNo" placeholder="请输入课程号" />
+        <el-form-item label="课程号">
+          <el-input :value="form.courseNo" disabled />
         </el-form-item>
         <el-form-item label="课程名">
           <el-input :value="form.course ? form.course.courseName : ''" disabled />
@@ -172,9 +172,6 @@ export default {
       semesterList: [],
       ids: [],
       rules: {
-        courseNo: [
-          { max: 20, message: '课程号长度不能超过20个字符', trigger: 'blur' }
-        ],
         weekDay: [
           { required: true, message: '请选择星期', trigger: 'change' }
         ],
